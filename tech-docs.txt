@@ -1,0 +1,472 @@
+Sekarang kita lengkapi referensi dokumentasi untuk fitur yang tidak membutuhkan API key. Aku pilihkan dokumentasi resmi atau dokumentasi utama library yang sebaiknya dijadikan acuan AI Agent, supaya implementasinya tidak asal memilih package atau memakai cara yang sudah usang.
+
+## **1. Daftar dokumentasi yang perlu diberikan ke AI Agent**
+
+| Fitur            | Teknologi / library          | API key                      |
+| ---------------- | ---------------------------- | ---------------------------- |
+| Peta kost        | Leaflet + React Leaflet      | Tidak                        |
+| Tile peta        | OpenStreetMap                | Tidak                        |
+| QR Code          | `qrcode` atau `qrcode.react` | Tidak                        |
+| Generate PDF     | `@react-pdf/renderer`        | Tidak                        |
+| WhatsApp pemilik | Click to Chat (`wa.me`)      | Tidak                        |
+| Deployment       | Vercel                       | Tidak untuk deployment dasar |
+
+## **2. Peta lokasi — Leaflet + React Leaflet**
+
+[Leaflet + OpenStreetMapで、地図にマーカー＆ラベル表示。サンプルソース。 - 晴歩雨描](https://images.openai.com/static-rsc-4/-L0EiLQc499rwhrRk5DpMI3zSqGSJPV1KI53QT__dXz5VBikRhq3o-2JD1Dt5qsPjiTBf7A6OkjoOd7jN_YtOME4pBluijw5ahaAlYVpX8LP5rVOOxzdFGey3hnnF_VBTa7aED7U4iQ9vXgXEpzD6kx2WT6y-UozBOmArnTYzOM?purpose=inline)
+
+**Dokumentasi utama**
+
+[Leaflet Quick Start](https://leafletjs.com/examples/quick-start/?utm_source=chatgpt.com)[Leaflet API Reference](https://leafletjs.com/reference.html?utm_source=chatgpt.com)
+
+[Tutorials - Leaflet - a JavaScript library for interactive maps](https://images.openai.com/static-rsc-4/fZQDPMt4xs8m_PG-aOurHfNIpV5kqNClNhmN-tr8zcn3dxfoqA9gkTIgSGRTjNMNrAajkEG6c5e-8rIaCTv5MeG5KsCxYum0IP8yvEbcTd9lr7b7EU7jbYcS_6kOE-bGOQEIajhUj3aqz2kZ2_JkAxoOftmpEejQqKQWDgjp4sQ?purpose=inline)
+
+**Untuk React / Next.js**
+
+[React Leaflet Installation](https://react-leaflet.js.org/docs/start-installation/?utm_source=chatgpt.com)[React Leaflet Setup](https://react-leaflet.js.org/docs/start-setup/?utm_source=chatgpt.com)[React Leaflet Popup Example](https://react-leaflet.js.org/docs/example-popup/?utm_source=chatgpt.com)
+
+**Package yang digunakan:**
+
+```
+npm install leaflet react-leaflet
+npm install -D @types/leaflet
+```
+
+**Penerapan pada Havena Kost:**
+
+* Menampilkan lokasi kost menggunakan marker.
+* Menampilkan beberapa kost sekaligus di peta.
+* Pemilik bisa menentukan lokasi kost dengan menggeser marker.
+* Pengunjung bisa melihat lokasi kost pada halaman detail.
+* Marker bisa diklik untuk melihat informasi singkat kost.
+
+Catatan untuk Next.js:
+
+* Komponen peta harus berjalan di Client Component.
+* Gunakan dynamic import dengan `ssr: false` untuk komponen peta agar tidak mengalami masalah `window is not defined`.
+* Import CSS Leaflet.
+* Pastikan container peta mempunyai tinggi yang jelas.
+
+### **OpenStreetMap**
+
+Dokumentasi:
+
+* [OpenStreetMap Copyright and Licence](https://www.openstreetmap.org/copyright?utm_source=chatgpt.com)
+* [OpenStreetMap Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/?utm_source=chatgpt.com)
+
+Contoh konfigurasi tile:
+
+```
+<TileLayer
+  url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+  attribution='&copy; OpenStreetMap contributors'
+/>
+```
+
+**Penting:** React Leaflet memiliki contoh URL tile dengan subdomain, tetapi untuk server tile standar OSM, ikuti kebijakan resmi yang menetapkan URL `tile.openstreetmap.org`. Tampilkan atribusi OSM dengan jelas, hormati caching, dan jangan melakukan prefetch atau download massal.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://openstreetmap.github.io\&sz=32)
+
+openstreetmap.github.io+1
+
+
+
+Perlu diketahui, data OpenStreetMap bebas digunakan, tetapi server tile publiknya bukan layanan gratis dengan jaminan uptime atau kapasitas untuk aplikasi komersial. Untuk produksi Havena Kost yang berkembang, pertimbangkan provider tile yang menyediakan free tier dan mengizinkan penggunaan komersial sesuai ketentuannya.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://operations.osmfoundation.org\&sz=32)
+
+operations.osmfoundation.org
+
+
+
+## **3. Geolocation — lokasi pengguna tanpa API key**
+
+Dokumentasi:
+
+* [Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API?utm_source=chatgpt.com)
+* [getCurrentPosition()](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation/getCurrentPosition?utm_source=chatgpt.com)
+
+Tidak perlu mengintegrasikan Google Maps untuk mengambil lokasi pengguna.
+
+Browser sudah menyediakan:
+
+```
+navigator.geolocation.getCurrentPosition(
+  (position) => {
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+
+    console.log(latitude, longitude);
+  },
+  (error) => {
+    console.error(error);
+  }
+);
+```
+
+Penerapan:
+
+* Tombol "Gunakan lokasi saya".
+* Mengambil koordinat pengguna setelah izin diberikan.
+* Menampilkan kost terdekat.
+* Menghitung jarak pengguna ke kost.
+
+Geolocation memerlukan HTTPS dan izin pengguna. Jika pengguna menolak izin, pencarian berdasarkan lokasi/kecamatan tetap harus bisa digunakan.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://developer.mozilla.org\&sz=32)
+
+MDN+1
+
+
+
+## **4. Neon + PostGIS — pencarian kost terdekat**
+
+Dokumentasi:
+
+* [PostGIS Documentation](https://postgis.net/documentation/?utm_source=chatgpt.com)
+* [ST_DWithin](https://postgis.net/docs/ST_DWithin.html?utm_source=chatgpt.com)
+* [ST_Distance](https://postgis.net/docs/ST_Distance.html?utm_source=chatgpt.com)
+* [PostGIS Database Management](https://postgis.net/docs/using_postgis_dbmanagement.html?utm_source=chatgpt.com)
+
+Ini penting karena Havena Kost memiliki fitur pencarian berdasarkan jarak.
+
+Contoh kebutuhan:
+
+* Mencari kost dalam radius 3 km.
+* Mengurutkan kost berdasarkan jarak terdekat.
+* Memfilter kost berdasarkan kecamatan.
+* Menampilkan lokasi kost pada peta.
+
+Contoh SQL untuk menghitung jarak:
+
+```
+SELECT
+  id,
+  name,
+  ST_Distance(
+    location,
+    ST_SetSRID(
+      ST_MakePoint(:longitude, :latitude),
+      4326
+    )::geography
+  ) AS distance_meters
+FROM kost_listings
+WHERE ST_DWithin(
+  location,
+  ST_SetSRID(
+    ST_MakePoint(:longitude, :latitude),
+    4326
+  )::geography,
+  3000
+)
+ORDER BY distance_meters ASC;
+```
+
+Ini mengasumsikan kolom `location` menggunakan tipe `geography(Point, 4326)`.
+
+Jangan lupa:
+
+* Aktifkan extension PostGIS di Neon.
+* Gunakan spatial index GiST pada kolom lokasi.
+* Simpan longitude dan latitude secara konsisten.
+* Jangan menghitung jarak menggunakan perkiraan frontend jika database sudah bisa mengerjakannya.
+
+PostGIS menyediakan fungsi jarak dalam meter dan mendukung penggunaan index untuk pencarian spasial.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://postgis.net\&sz=32)
+
+PostGIS+1
+
+
+
+## **5. QR Code — library&#x20;**`qrcode`
+
+Dokumentasi:
+
+* [Node QR Code GitHub Documentation](https://github.com/soldair/node-qrcode?utm_source=chatgpt.com)
+* [NPM qrcode](https://www.npmjs.com/package/qrcode?utm_source=chatgpt.com)
+
+Package:
+
+```
+npm install qrcode
+npm install -D @types/qrcode
+```
+
+Penerapan pada Havena Kost:
+
+* Pemilik membuat QR Code dari dashboard.
+* QR Code mengarah ke halaman review kost atau kamar.
+* QR Code bisa diunduh dalam format PNG/SVG.
+* Pemilik bisa mencetak QR Code.
+* Pengunjung scan QR dan langsung membuka form review.
+
+Contoh:
+
+```
+import QRCode from "qrcode";
+
+const qrCode = await QRCode.toDataURL(
+  "https://havenakost.com/review/kost-123"
+);
+```
+
+Library ini mendukung pembuatan QR Code di browser maupun server, termasuk output PNG dan SVG.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+soldair/node-qrcode: qr code generator · GitHub+1
+
+
+
+Catatan keamanan: QR Code hanya berfungsi sebagai pengarah ke halaman review, bukan bukti bahwa orang tersebut penghuni kost. Tetap gunakan proses verifikasi pemilik yang sudah kita sepakati.
+
+## **6. PDF Generator —&#x20;**`@react-pdf/renderer`
+
+Dokumentasi:
+
+* [React PDF Documentation](https://react-pdf.org/docs?utm_source=chatgpt.com)
+* [React PDF Quick Start](https://react-pdf.org/docs/v4?utm_source=chatgpt.com)
+* [PDF Download and Rendering](https://react-pdf.org/docs/v4/advanced/on-the-fly-rendering?utm_source=chatgpt.com)
+* [PDF Styling](https://react-pdf.org/docs/v4/styling?utm_source=chatgpt.com)
+
+Package:
+
+```
+npm install @react-pdf/renderer
+```
+
+Penerapan:
+
+* Laporan pemasukan kost.
+* Laporan pengeluaran.
+* Rekap keuangan bulanan.
+* Rekap transaksi.
+* Download laporan dalam bentuk PDF.
+
+Contoh struktur:
+
+```
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  PDFDownloadLink
+} from "@react-pdf/renderer";
+```
+
+Gunakan `PDFDownloadLink` untuk menyediakan tombol download laporan.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://react-pdf.org\&sz=32)
+
+react-pdf+1
+
+
+
+## **7. WhatsApp Direct Link**
+
+Dokumentasi resmi:
+
+\- [WhatsApp Click to Chat](https://faq.whatsapp.com/5913398998672934?utm_source=chatgpt.com)
+
+Tidak perlu WhatsApp API.
+
+Contoh:
+
+```
+const phone = "6281234567890";
+
+const message = encodeURIComponent(
+  "Halo, saya tertarik dengan kost yang Anda tawarkan."
+);
+
+const whatsappUrl =
+  `https://wa.me/${phone}?text=${message}`;
+
+window.open(whatsappUrl, "_blank");
+```
+
+Nomor harus menggunakan format internasional, misalnya `628...`, tanpa tanda `+`, spasi, atau angka 0 di depan.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://faq.whatsapp.com\&sz=32)
+
+WhatsApp Help Center
+
+
+
+## **8. Vercel — deployment**
+
+Dokumentasi:
+
+* [Next.js on Vercel](https://vercel.com/docs/frameworks/full-stack/nextjs?utm_source=chatgpt.com)
+* [Vercel Environments](https://vercel.com/docs/deployments/environments?utm_source=chatgpt.com)
+* [Next.js Environment Variables](https://nextjs.org/docs/app/guides/environment-variables?utm_source=chatgpt.com)
+
+Penerapan:
+
+* Hubungkan repository GitHub.
+* Import project Next.js.
+* Atur environment variables.
+* Deploy.
+* Setiap perubahan pada branch yang terhubung bisa memicu deployment sesuai konfigurasi.
+
+Vercel mendukung deployment Next.js secara langsung.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://vercel.com\&sz=32)
+
+Vercel+1
+
+
+
+## **9. Catatan penting: fitur yang jangan sampai salah dibangun**
+
+Ada beberapa keputusan teknis yang ingin aku tekankan untuk Havena Kost.
+
+| Fitur             | Rekomendasi implementasi                  |
+| ----------------- | ----------------------------------------- |
+| Lokasi kost       | Pemilik menentukan pin secara manual      |
+| Lokasi pengguna   | Browser Geolocation API                   |
+| Jarak kost        | Perhitungan PostGIS di Neon               |
+| Peta              | Leaflet + React Leaflet                   |
+| QR Code           | URL halaman review per kost/kamar         |
+| Review            | Pemilik verifikasi status penghuni        |
+| Notifikasi review | In-app notification tersimpan di database |
+| PDF               | React PDF                                 |
+| Kontak pemilik    | WhatsApp Direct Link                      |
+
+Untuk pencarian alamat otomatis, ada Nominatim yang tidak membutuhkan API key. Namun, layanan publiknya membatasi penggunaan maksimal satu request per detik dan melarang autocomplete di sisi klien. Jadi aku tidak menyarankan AI Agent membangun fitur autocomplete alamat menggunakan endpoint publik tersebut. Lebih aman untuk MVP menggunakan pin lokasi manual.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://operations.osmfoundation.org\&sz=32)
+
+operations.osmfoundation.org+1
+
+
+
+## **10. Prompt untuk diberikan kepada AI Agent**
+
+Kamu bisa memberikan instruksi berikut bersama dokumentasi di atas. Ini membantu Agent memahami batasan teknologi sebelum mulai coding.
+
+# Havena Kost — Technical Documentation & Implementation Rules
+
+Gunakan dokumentasi resmi berikut sebagai referensi utama selama pengembangan.
+
+## Tech Stack
+
+* Next.js + TypeScript
+* Neon PostgreSQL + PostGIS
+* Better Auth
+* Cloudflare R2
+* Cloudflare Turnstile
+* Leaflet + React Leaflet
+* OpenStreetMap
+* qrcode
+* @react-pdf/renderer
+* WhatsApp Direct Link
+* Vercel
+
+## Dokumentasi Wajib
+
+1. Leaflet: [https://leafletjs.com/reference.html](https://leafletjs.com/reference.html)
+2. React Leaflet: [https://react-leaflet.js.org/docs/](https://react-leaflet.js.org/docs/)
+3. OpenStreetMap Tile Policy: [https://operations.osmfoundation.org/policies/tiles/](https://operations.osmfoundation.org/policies/tiles/)
+4. Browser Geolocation: [https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
+5. PostGIS: [https://postgis.net/documentation/](https://postgis.net/documentation/)
+6. PostGIS ST_DWithin: [https://postgis.net/docs/ST_DWithin.html](https://postgis.net/docs/ST_DWithin.html)
+7. QR Code: [https://github.com/soldair/node-qrcode](https://github.com/soldair/node-qrcode)
+8. React PDF: [https://react-pdf.org/docs](https://react-pdf.org/docs)
+9. WhatsApp Click to Chat: [https://faq.whatsapp.com/5913398998672934](https://faq.whatsapp.com/5913398998672934)
+10. Vercel Next.js: [https://vercel.com/docs/frameworks/full-stack/nextjs](https://vercel.com/docs/frameworks/full-stack/nextjs)
+
+## Implementation Rules
+
+### Maps
+
+* Gunakan Leaflet + React Leaflet.
+* Jangan menggunakan Google Maps API atau Mapbox.
+* Pemilik menentukan koordinat kost dengan marker yang bisa digeser.
+* Gunakan browser Geolocation API untuk fitur lokasi pengguna.
+* Peta Next.js harus di-render sebagai client component.
+* Jangan lupa import Leaflet CSS dan menentukan tinggi container peta.
+* Tampilkan atribusi OpenStreetMap.
+* Patuhi kebijakan penggunaan tile OpenStreetMap.
+
+### Database & Location
+
+* Gunakan PostgreSQL dan PostGIS.
+* Aktifkan extension PostGIS.
+* Gunakan tipe geography(Point, 4326) untuk lokasi kost.
+* Tambahkan GiST spatial index.
+* Gunakan ST_DWithin untuk pencarian radius.
+* Gunakan ST_Distance untuk pengurutan berdasarkan jarak.
+* Jangan menghitung jarak hanya berdasarkan perkiraan frontend.
+
+### QR Code & Reviews
+
+* Generate QR Code menggunakan package qrcode.
+* QR Code harus mengarah ke URL review kost/kamar.
+* Pengunjung tidak wajib login.
+* Form review memuat nama, kamar, periode tinggal, rating, dan komentar.
+* Review masuk ke status pending.
+* Pemilik memverifikasi status penghuni.
+* Pemilik tidak boleh mengedit rating atau komentar.
+* Sediakan alasan ketika review ditolak.
+* Admin memiliki kewenangan moderasi.
+* QR Code bukan bukti identitas atau bukti penghuni.
+
+### PDF
+
+* Gunakan @react-pdf/renderer.
+* Buat template laporan keuangan yang konsisten.
+* Sediakan tombol download PDF.
+* Ambil data laporan dari database, bukan data dummy.
+
+### WhatsApp
+
+* Gunakan Click to Chat melalui [https://wa.me/](https://wa.me/).
+* Nomor disimpan dalam format internasional.
+* Gunakan encodeURIComponent untuk pesan otomatis.
+
+### Security
+
+* Jangan pernah menaruh secret key pada frontend.
+* Jangan mengekspos DATABASE_URL, R2_SECRET_ACCESS_KEY, TURNSTILE_SECRET_KEY, atau BETTER_AUTH_SECRET.
+* Validasi input pada server.
+* Verifikasi Turnstile di backend.
+* Terapkan authorization berdasarkan role.
+* Pemilik hanya boleh mengakses data kost miliknya sendiri.
+
+### Development
+
+* Baca dokumentasi resmi sebelum implementasi.
+* Gunakan versi package yang kompatibel dengan versi React dan Next.js project.
+* Jangan menggunakan package versi beta/next tanpa alasan yang jelas.
+* Jangan membuat integrasi API eksternal yang tidak dibutuhkan.
+* Jangan mengarang endpoint, method, atau konfigurasi.
+* Pastikan setiap fitur bisa diuji sebelum melanjutkan ke fitur berikutnya.
+* Jangan mengisi database produksi dengan data dummy.
+* Gunakan environment variables untuk semua credential.
+
+Jika dokumentasi atau kompatibilitas package berubah, prioritaskan dokumentasi resmi terbaru dan jelaskan perubahan sebelum menerapkan pendekatan berbeda.
+
+## **11. Urutan implementasi yang aku sarankan**
+
+1. **Database dan autentikasi**
+
+   Neon, schema PostgreSQL, PostGIS, Better Auth, role owner/admin.
+2. **Core aplikasi**
+
+   Landing page, pencarian kost, detail kost, dashboard pemilik dan admin.
+3. **Maps dan lokasi**
+
+   Leaflet, marker kost, geolocation, pencarian radius.
+4. **Storage dan QR Code**
+
+   Upload foto ke R2, generate QR Code, halaman review.
+5. **Verifikasi review**
+
+   Notifikasi dashboard, persetujuan pemilik, moderasi admin.
+6. **Fitur tambahan**
+
+   PDF, WhatsApp, optimasi, testing dan deployment Vercel.

@@ -1,0 +1,1196 @@
+openapi: 3.1.0
+info:
+  title: Havena Kost API
+  version: 1.0.0
+  description: |
+    Backend API Havena Kost. Autentikasi memakai cookie session Better Auth.
+    Semua response memakai envelope `{ success, message, data, meta }`
+    atau `{ success, message, errors }`.
+  contact:
+    name: Havena Kost
+servers:
+  - url: http://localhost:3000
+    description: Development
+  - url: https://havenakost.example.com
+    description: Production (ganti dengan domain sebenarnya)
+
+tags:
+  - name: Public
+  - name: Owner
+  - name: Admin
+  - name: Auth
+
+security:
+  - cookieAuth: []
+
+paths:
+  /api/health:
+    get:
+      tags: [Public]
+      summary: Health check database + PostGIS
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "503": { $ref: "#/components/responses/Error" }
+
+  /api/auth/sign-up/email:
+    post:
+      tags: [Auth]
+      summary: Registrasi owner (role selalu owner)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              additionalProperties: false
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                name: { type: string }
+      responses:
+        "200": { description: Session berhasil dibuat }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /api/auth/sign-in/email:
+    post:
+      tags: [Auth]
+      summary: Login email/password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200": { description: Cookie session dikirim }
+        "401": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /api/auth/sign-out:
+    post:
+      tags: [Auth]
+      summary: Logout
+      responses:
+        "200": { description: Session dihapus }
+
+  /api/auth/get-session:
+    get:
+      tags: [Auth]
+      summary: Session aktif
+      responses:
+        "200": { description: Session atau null }
+
+  /api/public/kost:
+    get:
+      tags: [Public]
+      summary: Cari listing published
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: q, in: query, schema: { type: string } }
+        - { name: city, in: query, schema: { type: string } }
+        - { name: district, in: query, schema: { type: string } }
+        - { name: gender_policy, in: query, schema: { $ref: "#/components/schemas/GenderPolicy" } }
+        - { name: price_min, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: price_max, in: query, schema: { type: integer, minimum: 0 } }
+        - name: facility
+          in: query
+          description: UUID fasilitas, boleh diulang atau dipisah koma
+          schema: { type: array, items: { type: string, format: uuid } }
+        - { name: available, in: query, schema: { type: boolean } }
+        - { name: sort, in: query, schema: { type: string, enum: [newest, price_asc, price_desc, distance] } }
+        - { name: latitude, in: query, schema: { type: number, minimum: -90, maximum: 90 } }
+        - { name: longitude, in: query, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: radius, in: query, schema: { type: integer, minimum: 100, maximum: 50000, default: 5000 } }
+      responses:
+        "200":
+          description: Daftar listing
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/ListingCard" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /api/public/kost/{slug}:
+    get:
+      tags: [Public]
+      summary: Detail listing published
+      security: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /api/public/kost/{slug}/rooms:
+    get:
+      tags: [Public]
+      summary: Kamar publik
+      security: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /api/public/kost/{slug}/reviews:
+    get:
+      tags: [Public]
+      summary: Review published
+      security: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: room_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/public/review/{token}:
+    get:
+      tags: [Public]
+      summary: Validasi token QR
+      security: []
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /api/public/reviews:
+    post:
+      tags: [Public]
+      summary: Kirim review tanpa login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [qr_token, reviewer_name, claimed_check_in_date, rating, comment, turnstile_token]
+              additionalProperties: false
+              properties:
+                qr_token: { type: string }
+                reviewer_name: { type: string, minLength: 2, maxLength: 120 }
+                public_display_name: { type: string, maxLength: 80 }
+                claimed_check_in_date: { type: string, format: date }
+                claimed_check_out_date: { type: string, format: date, nullable: true }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string, minLength: 10, maxLength: 2000 }
+                turnstile_token: { type: string }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /api/public/locations/search:
+    get:
+      tags: [Public]
+      summary: Cari listing dalam radius (sort jarak)
+      security: []
+      parameters:
+        - { name: latitude, in: query, required: true, schema: { type: number } }
+        - { name: longitude, in: query, required: true, schema: { type: number } }
+        - { name: radius, in: query, schema: { type: integer, default: 5000 } }
+        - { name: price_min, in: query, schema: { type: integer } }
+        - { name: price_max, in: query, schema: { type: integer } }
+        - { name: facility, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer } }
+        - { name: limit, in: query, schema: { type: integer } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /api/public/facilities:
+    get:
+      tags: [Public]
+      summary: Katalog fasilitas
+      security: []
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/public/photos:
+    get:
+      tags: [Public]
+      summary: Proxy foto R2 (hanya listing published)
+      security: []
+      parameters:
+        - { name: key, in: query, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Binary image }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /api/owner/profile:
+    get:
+      tags: [Owner]
+      summary: Profil owner
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [Owner]
+      summary: Ubah profil owner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                full_name: { type: string }
+                business_name: { type: string, nullable: true }
+                phone: { type: string, pattern: "^62[0-9]{8,15}$" }
+                address: { type: string, nullable: true }
+                profile_photo: { type: string, nullable: true }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /api/owner/listings:
+    get:
+      tags: [Owner]
+      summary: Daftar listing milik owner
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/ListingStatus" } }
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      tags: [Owner]
+      summary: Buat listing draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /api/owner/listings/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Owner]
+      summary: Detail listing milik owner
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [Owner]
+      summary: Ubah listing atau ajukan status pending
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: { type: string }
+                description: { type: string }
+                status: { type: string, enum: [draft, pending, archived] }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "403": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [Owner]
+      summary: Soft delete listing
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/listings/{id}/facilities:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Owner]
+      summary: Fasilitas listing
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    put:
+      tags: [Owner]
+      summary: Ganti seluruh fasilitas listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [facility_ids]
+              additionalProperties: false
+              properties:
+                facility_ids:
+                  type: array
+                  maxItems: 50
+                  items: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/listings/{id}/photos/presign:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Owner]
+      summary: Presigned upload foto R2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filename, content_type, size]
+              additionalProperties: false
+              properties:
+                filename: { type: string }
+                content_type: { type: string, enum: [image/jpeg, image/png, image/webp] }
+                size: { type: integer, maximum: 10485760 }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /api/owner/listings/{id}/photos/confirm:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Owner]
+      summary: Konfirmasi upload foto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [object_key]
+              additionalProperties: false
+              properties:
+                object_key: { type: string }
+                alt_text: { type: string }
+                is_cover: { type: boolean, default: false }
+                sort_order: { type: integer, default: 0 }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+
+  /api/owner/photos/{photoId}:
+    parameters:
+      - { name: photoId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Owner]
+      summary: Ubah metadata foto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                alt_text: { type: string, nullable: true }
+                sort_order: { type: integer }
+                is_cover: { type: boolean }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    delete:
+      tags: [Owner]
+      summary: Hapus foto
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/listings/{id}/rooms:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Owner]
+      summary: Daftar kamar listing
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/RoomStatus" } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      tags: [Owner]
+      summary: Buat kamar fisik
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [room_code, monthly_price]
+              additionalProperties: false
+              properties:
+                room_code: { type: string }
+                room_name: { type: string }
+                description: { type: string }
+                monthly_price: { type: number, minimum: 0 }
+                room_status: { $ref: "#/components/schemas/RoomStatus" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+
+  /api/owner/rooms/{roomId}:
+    parameters:
+      - { name: roomId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Owner]
+      summary: Detail kamar
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    patch:
+      tags: [Owner]
+      summary: Ubah kamar
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    delete:
+      tags: [Owner]
+      summary: Hapus kamar tanpa riwayat
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /api/owner/rooms/{roomId}/qr:
+    parameters:
+      - { name: roomId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Owner]
+      summary: Ambil QR (JSON) atau download PNG/SVG
+      parameters:
+        - { name: format, in: query, schema: { type: string, enum: [png, svg] } }
+      responses:
+        "200": { description: JSON QR atau file gambar }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [Owner]
+      summary: Buat QR pertama kali
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [Owner]
+      summary: Nonaktifkan QR
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/rooms/{roomId}/qr/regenerate:
+    parameters:
+      - { name: roomId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Owner]
+      summary: Regenerate QR (token lama invalid)
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+
+  /api/owner/rooms/{roomId}/occupancies:
+    parameters:
+      - { name: roomId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Owner]
+      summary: Daftar penghuni kamar (privat)
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: status, in: query, schema: { type: string, enum: [active, completed, cancelled] } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      tags: [Owner]
+      summary: Tambah data penghuni
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenant_name, check_in_date]
+              additionalProperties: false
+              properties:
+                tenant_name: { type: string }
+                check_in_date: { type: string, format: date }
+                check_out_date: { type: string, format: date, nullable: true }
+                occupancy_status: { type: string, enum: [active, completed, cancelled] }
+                notes: { type: string, nullable: true }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /api/owner/occupancies/{occupancyId}:
+    parameters:
+      - { name: occupancyId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Owner]
+      summary: Ubah data penghuni
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    delete:
+      tags: [Owner]
+      summary: Hapus data penghuni (jika belum dipakai verifikasi)
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /api/owner/reviews:
+    get:
+      tags: [Owner]
+      summary: Daftar review untuk listing owner
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: publication_status, in: query, schema: { type: string, enum: [pending, published, rejected, hidden] } }
+        - { name: verification_status, in: query, schema: { type: string, enum: [unmatched, possible_match, ambiguous, verified, rejected] } }
+        - { name: kost_id, in: query, schema: { type: string, format: uuid } }
+        - { name: room_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/reviews/{reviewId}:
+    parameters:
+      - { name: reviewId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Owner]
+      summary: Detail review + kandidat occupancy
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /api/owner/reviews/{reviewId}/verify:
+    parameters:
+      - { name: reviewId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Owner]
+      summary: Verifikasi penghuni dan publish review
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                occupancy_id: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /api/owner/reviews/{reviewId}/reject:
+    parameters:
+      - { name: reviewId, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Owner]
+      summary: Tolak review dengan alasan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              additionalProperties: false
+              properties:
+                reason: { type: string, minLength: 5, maxLength: 500 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/finances:
+    get:
+      tags: [Owner]
+      summary: Daftar catatan keuangan
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: record_type, in: query, schema: { type: string, enum: [income, expense] } }
+        - { name: category, in: query, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      tags: [Owner]
+      summary: Tambah catatan keuangan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [record_type, category, amount, transaction_date]
+              additionalProperties: false
+              properties:
+                kost_id: { type: string, format: uuid }
+                room_id: { type: string, format: uuid }
+                record_type: { type: string, enum: [income, expense] }
+                category: { type: string }
+                description: { type: string, nullable: true }
+                amount: { type: number, exclusiveMinimum: 0 }
+                transaction_date: { type: string, format: date }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+
+  /api/owner/finances/summary:
+    get:
+      tags: [Owner]
+      summary: Rekap pemasukan/pengeluaran/saldo/bulanan
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: kost_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/finances/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Owner]
+      summary: Detail catatan keuangan
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [Owner]
+      summary: Ubah catatan keuangan
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    delete:
+      tags: [Owner]
+      summary: Hapus catatan keuangan
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/notifications:
+    get:
+      tags: [Owner]
+      summary: Daftar notifikasi in-app
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: unread_only, in: query, schema: { type: boolean } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/notifications/{id}/read:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Owner]
+      summary: Tandai satu notifikasi dibaca
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/notifications/read-all:
+    post:
+      tags: [Owner]
+      summary: Tandai semua notifikasi dibaca
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/subscription:
+    get:
+      tags: [Owner]
+      summary: Langganan aktif + riwayat pembayaran
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/subscription/plans:
+    get:
+      tags: [Owner]
+      summary: Paket langganan aktif
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/owner/subscription/payment:
+    post:
+      tags: [Owner]
+      summary: Ajukan pembayaran manual
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan_id, payment_method, payment_amount]
+              additionalProperties: false
+              properties:
+                plan_id: { type: string, format: uuid }
+                payment_method: { type: string }
+                payment_amount: { type: number, exclusiveMinimum: 0 }
+                payment_proof: { type: string }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /api/admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Statistik platform + growth
+      parameters:
+        - { name: days, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 30 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /api/admin/owners:
+    get:
+      tags: [Admin]
+      summary: Daftar owner
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: q, in: query, schema: { type: string } }
+        - { name: approval_status, in: query, schema: { type: string, enum: [pending, approved, rejected, suspended] } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/owners/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Admin]
+      summary: Detail owner + statistik
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/owners/{id}/approve:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      summary: Setujui owner
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/owners/{id}/reject:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      summary: Tolak owner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 5 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/owners/{id}/status:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [Admin]
+      summary: Ubah status owner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [pending, approved, rejected, suspended] }
+                reason: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/listings:
+    get:
+      tags: [Admin]
+      summary: Semua listing
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: q, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/ListingStatus" } }
+        - { name: owner_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/listings/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Admin]
+      summary: Detail listing + owner
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/listings/{id}/approve:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Admin]
+      summary: Publish listing
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/listings/{id}/reject:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Admin]
+      summary: Tolak listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 5 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/listings/{id}/status:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Admin]
+      summary: Ubah status listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: "#/components/schemas/ListingStatus" }
+                reason: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/reviews:
+    get:
+      tags: [Admin]
+      summary: Semua review
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: publication_status, in: query, schema: { type: string, enum: [pending, published, rejected, hidden] } }
+        - { name: verification_status, in: query, schema: { type: string } }
+        - { name: kost_id, in: query, schema: { type: string, format: uuid } }
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/reviews/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Admin]
+      summary: Detail review untuk moderasi
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/reviews/{id}/publish:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Admin]
+      summary: Publish review (override)
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/reviews/{id}/hide:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Admin]
+      summary: Sembunyikan review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 5 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/reviews/{id}/verify:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Admin]
+      summary: Verifikasi review (override)
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/reviews/{id}/reject:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Admin]
+      summary: Tolak review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 5 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/subscriptions:
+    get:
+      tags: [Admin]
+      summary: Daftar langganan
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/subscription-payments:
+    get:
+      tags: [Admin]
+      summary: Daftar pembayaran langganan
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: status, in: query, schema: { type: string, enum: [pending, approved, rejected] } }
+        - { name: owner_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/subscription-plans:
+    get:
+      tags: [Admin]
+      summary: Daftar paket
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      tags: [Admin]
+      summary: Buat paket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name, price, duration_days]
+              additionalProperties: false
+              properties:
+                code: { type: string, pattern: "^[a-z0-9-]+$" }
+                name: { type: string }
+                description: { type: string, nullable: true }
+                price: { type: number, minimum: 0 }
+                duration_days: { type: integer, minimum: 1 }
+                max_listings: { type: integer, nullable: true }
+                features: { type: string, nullable: true }
+                is_active: { type: boolean, default: true }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+
+  /api/admin/subscription-plans/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Admin]
+      summary: Ubah paket
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    delete:
+      tags: [Admin]
+      summary: Hapus/nonaktifkan paket
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/subscription-payments/{id}/approve:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Admin]
+      summary: Setujui pembayaran dan aktifkan langganan
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/subscription-payments/{id}/reject:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Admin]
+      summary: Tolak pembayaran
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 5 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+  /api/admin/logs:
+    get:
+      tags: [Admin]
+      summary: Audit log admin
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - { name: admin_id, in: query, schema: { type: string } }
+        - { name: entity_type, in: query, schema: { type: string } }
+        - { name: action, in: query, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    Success:
+      description: Response sukses standar
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiSuccess" }
+    Error:
+      description: Response error standar
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+
+  schemas:
+    ApiSuccess:
+      type: object
+      required: [success, message, data, meta]
+      properties:
+        success: { type: boolean, const: true }
+        message: { type: string }
+        data: {}
+        meta:
+          oneOf:
+            - type: object
+            - type: "null"
+    ApiError:
+      type: object
+      required: [success, message, errors]
+      properties:
+        success: { type: boolean, const: false }
+        message: { type: string }
+        errors:
+          oneOf:
+            - type: object
+            - type: array
+            - type: "null"
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+        hasNext: { type: boolean }
+        hasPrev: { type: boolean }
+    GenderPolicy:
+      type: string
+      enum: [male, female, mixed]
+    ListingStatus:
+      type: string
+      enum: [draft, pending, published, rejected, archived]
+    RoomStatus:
+      type: string
+      enum: [available, occupied, unavailable]
+    ListingCard:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        address: { type: string }
+        city: { type: string }
+        district: { type: string }
+        latitude: { type: string }
+        longitude: { type: string }
+        genderPolicy: { $ref: "#/components/schemas/GenderPolicy" }
+        priceMin: { type: integer }
+        priceMax: { type: integer }
+        contactPhone: { type: string }
+        coverImageUrl: { type: string, nullable: true }
+        ratingAvg: { type: number }
+        reviewCount: { type: integer }
+        roomCount: { type: integer }
+        availableRoomCount: { type: integer }
+        distanceMeters: { type: number }
+    ListingCreate:
+      type: object
+      required:
+        - name
+        - description
+        - address
+        - province
+        - city
+        - district
+        - latitude
+        - longitude
+        - gender_policy
+        - price_min
+        - price_max
+        - contact_phone
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 3, maxLength: 120 }
+        description: { type: string, minLength: 20, maxLength: 5000 }
+        address: { type: string }
+        province: { type: string }
+        city: { type: string }
+        district: { type: string }
+        subdistrict: { type: string }
+        postal_code: { type: string, pattern: "^[0-9]{5}$" }
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        gender_policy: { $ref: "#/components/schemas/GenderPolicy" }
+        price_min: { type: integer, minimum: 0 }
+        price_max: { type: integer, minimum: 0 }
+        contact_phone: { type: string, pattern: "^62[0-9]{8,15}$" }
+        facility_ids:
+          type: array
+          maxItems: 50
+          items: { type: string, format: uuid }

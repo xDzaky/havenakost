@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794844370224,
+      "tag": "0000_reflective_vapor",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794844371783,
+      "tag": "0001_postgis_location",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794846848388,
+      "tag": "0002_slim_sersi",
+      "breakpoints": true
+    }
+  ]
+}

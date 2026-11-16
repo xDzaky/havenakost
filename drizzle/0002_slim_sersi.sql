@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "room_occupancies_one_active_per_room" ON "room_occupancies" USING btree ("room_id") WHERE "room_occupancies"."occupancy_status" = 'active';

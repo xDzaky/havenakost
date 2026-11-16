@@ -1,0 +1,1935 @@
+Kamu bertindak sebagai Senior Backend Engineer, Database Architect, dan Security Engineer yang bertugas membangun backend untuk sebuah produk bernama HAVENA KOST.
+
+Kamu harus mengimplementasikan backend secara serius, terstruktur, aman, scalable, dan siap dikembangkan menjadi produk yang digunakan secara nyata.
+
+Jangan hanya memberikan contoh kode, pseudocode, atau penjelasan. Kamu harus benar-benar memeriksa repository, membuat file yang diperlukan, mengimplementasikan fitur, menghubungkan database, membuat API, membuat migration, dan melakukan testing.
+
+==================================================
+1. PROJECT OVERVIEW
+==================================================
+
+Nama Project:
+Havena Kost
+
+Deskripsi:
+Havena Kost adalah platform direktori dan pencarian kost yang berfokus pada wilayah Malang Raya.
+
+Platform ini membantu mahasiswa, pekerja, dan masyarakat umum menemukan kost berdasarkan lokasi, harga, fasilitas, ketersediaan kamar, dan informasi lainnya.
+
+Havena Kost juga menyediakan dashboard untuk pemilik kost agar dapat mengelola informasi kost, kamar, penghuni, review, dan catatan keuangan.
+
+Terdapat dua role akun yang memiliki akses login:
+
+1. OWNER / PEMILIK KOST
+2. ADMIN / DEVELOPER
+
+Pengunjung biasa tidak membutuhkan akun dan tidak perlu login.
+
+Pengunjung publik dapat:
+- Melihat landing page.
+- Mencari kost.
+- Melakukan filter kost.
+- Melihat lokasi kost.
+- Melihat detail kost.
+- Melihat informasi kamar.
+- Melihat review dan rating.
+- Menghubungi pemilik kost melalui WhatsApp.
+- Mengirim review melalui QR Code tanpa login.
+
+Pemilik kost dapat:
+- Mendaftar dan login.
+- Mengelola profil pemilik.
+- Menambahkan kost.
+- Mengedit informasi kost.
+- Menghapus atau mengarsipkan kost miliknya.
+- Mengelola foto dan galeri.
+- Mengelola kamar.
+- Mengelola data penghuni.
+- Membuat dan mencetak QR Code untuk setiap kamar.
+- Memverifikasi review penghuni.
+- Mengelola laporan keuangan.
+- Melihat notifikasi.
+- Mengelola informasi langganan.
+
+Admin merupakan developer/pengelola platform dan memiliki akses penuh untuk:
+- Mengelola akun pemilik.
+- Memverifikasi pemilik kost.
+- Mengelola seluruh listing kost.
+- Memoderasi review.
+- Mengelola paket langganan.
+- Memverifikasi pembayaran langganan manual.
+- Melihat statistik platform.
+- Melihat aktivitas pengguna.
+- Melihat audit log.
+
+PENTING:
+Pengunjung biasa bukan role akun.
+Jangan membuat sistem registrasi untuk pengunjung.
+Jangan mewajibkan login untuk mencari kost atau mengirim review.
+
+==================================================
+2. TECH STACK FINAL
+==================================================
+
+Gunakan teknologi berikut dan jangan menggantinya tanpa alasan teknis yang kuat.
+
+BACKEND FRAMEWORK:
+- Next.js App Router
+- TypeScript
+- Next.js Route Handlers untuk REST API
+
+DATABASE:
+- Neon PostgreSQL
+- PostGIS
+- Drizzle ORM
+- Drizzle Kit untuk database migration
+
+AUTHENTICATION:
+- Better Auth
+- Email and Password Authentication
+- Session-based Authentication
+- Role-based Access Control
+
+OBJECT STORAGE:
+- Cloudflare R2
+- S3-compatible API
+- AWS SDK for JavaScript v3
+- Presigned URL untuk upload file
+
+ANTI-SPAM:
+- Cloudflare Turnstile
+- Server-side Siteverify validation
+
+VALIDATION:
+- Zod
+
+QR CODE:
+- qrcode
+
+MAP LOCATION:
+- Leaflet dan OpenStreetMap digunakan pada sisi frontend.
+- Backend hanya mengelola koordinat dan pencarian geografis.
+- Jangan menggunakan Google Maps API.
+
+PDF:
+- @react-pdf/renderer digunakan pada sisi frontend bila diperlukan.
+- Backend menyediakan data laporan yang diperlukan.
+
+DEPLOYMENT:
+- Vercel
+
+PACKAGE MANAGER:
+- Ikuti package manager yang sudah digunakan repository.
+- Jangan mengganti package manager jika project sudah memiliki lockfile.
+
+TAMBAHAN:
+Gunakan library pendukung hanya jika memang dibutuhkan.
+Jangan menambahkan layanan eksternal berbayar.
+Jangan menambahkan Redis, Supabase, Firebase, Clerk, Auth0, atau payment gateway.
+Jangan menggunakan layanan yang tidak termasuk dalam stack tanpa persetujuan.
+
+==================================================
+3. ATURAN SEBELUM MULAI CODING
+==================================================
+
+Sebelum melakukan implementasi:
+
+1. Periksa seluruh struktur repository.
+2. Periksa package.json dan lockfile.
+3. Periksa versi Next.js, React, TypeScript, dan dependency yang sudah terpasang.
+4. Periksa apakah proyek sudah memiliki database schema.
+5. Periksa apakah sudah ada konfigurasi Neon.
+6. Periksa apakah sudah ada implementasi Better Auth.
+7. Periksa apakah sudah terdapat API atau backend sebelumnya.
+8. Jangan menghapus kode yang masih digunakan.
+9. Jangan membuat ulang project dari nol jika project sudah tersedia.
+10. Jangan mengubah desain atau struktur frontend yang tidak berkaitan dengan backend.
+
+Jika sudah ada implementasi sebelumnya, lanjutkan berdasarkan struktur yang ada.
+
+Jika repository masih kosong, buat struktur backend yang sesuai dengan Next.js App Router.
+
+Sebelum coding, berikan ringkasan singkat:
+- Struktur repository saat ini.
+- Teknologi yang sudah terpasang.
+- Bagian yang perlu dibuat.
+- Rencana implementasi.
+
+Setelah itu LANJUTKAN implementasi. Jangan berhenti hanya pada tahap perencanaan.
+
+Jika ada detail teknis yang belum ditentukan, gunakan keputusan yang paling konsisten dengan spesifikasi Havena Kost ini. Jangan mengubah konsep produk secara sepihak.
+
+==================================================
+4. BACKEND ARCHITECTURE
+==================================================
+
+Gunakan arsitektur modular dan pisahkan tanggung jawab kode.
+
+Jangan meletakkan seluruh query database, autentikasi, validasi, dan business logic dalam satu file route.ts.
+
+Gunakan pemisahan seperti:
+
+- API Layer
+- Authentication Layer
+- Authorization Layer
+- Validation Layer
+- Service Layer
+- Database Layer
+- Storage Layer
+- Utility Layer
+
+Contoh struktur yang dapat digunakan:
+
+src/
+  app/
+    api/
+      auth/
+        [...all]/
+          route.ts
+
+      public/
+        kost/
+        reviews/
+        locations/
+
+      owner/
+        profile/
+        listings/
+        rooms/
+        occupancies/
+        reviews/
+        finances/
+        subscriptions/
+        notifications/
+
+      admin/
+        dashboard/
+        owners/
+        listings/
+        reviews/
+        subscriptions/
+        users/
+        logs/
+
+  lib/
+    auth/
+      auth.ts
+      auth-client.ts
+      session.ts
+
+    db/
+      index.ts
+      schema/
+      migrations/
+
+    storage/
+      r2.ts
+
+    security/
+      authorization.ts
+      permissions.ts
+      turnstile.ts
+      rate-limit.ts
+
+    validators/
+      auth.schema.ts
+      kost.schema.ts
+      room.schema.ts
+      review.schema.ts
+      occupancy.schema.ts
+      finance.schema.ts
+
+    services/
+      auth.service.ts
+      kost.service.ts
+      room.service.ts
+      occupancy.service.ts
+      review.service.ts
+      finance.service.ts
+      subscription.service.ts
+      notification.service.ts
+      admin.service.ts
+
+    utils/
+      api-response.ts
+      api-error.ts
+      pagination.ts
+      slug.ts
+      qr-code.ts
+      geolocation.ts
+
+  types/
+
+  drizzle/
+
+  tests/
+
+Sesuaikan struktur ini dengan repository. Jangan memaksakan struktur yang menyebabkan duplikasi kode.
+
+Gunakan prinsip:
+- Reusable services.
+- Reusable validators.
+- Centralized error handling.
+- Type-safe database queries.
+- Strict TypeScript.
+- Secure API authorization.
+- Separation of concerns.
+
+==================================================
+5. DATABASE ARCHITECTURE
+==================================================
+
+Gunakan Neon PostgreSQL sebagai database utama.
+
+Gunakan Drizzle ORM untuk query dan schema management.
+
+Gunakan Drizzle Kit untuk migration.
+
+Untuk koneksi Neon, periksa dokumentasi resmi Drizzle-Neon dan gunakan driver yang sesuai dengan kebutuhan transaksi aplikasi.
+
+Karena aplikasi memiliki beberapa proses yang membutuhkan transaksi database, seperti verifikasi review dan perubahan status penghuni, gunakan koneksi WebSocket/driver yang mendukung interactive transactions jika memang diperlukan.
+
+Untuk operasi PostGIS yang belum dapat direpresentasikan dengan baik melalui ORM, gunakan parameterized raw SQL.
+
+Jangan membuat query SQL dengan menyambungkan input pengguna secara langsung.
+
+A. BETTER AUTH TABLES
+
+Gunakan schema yang dibutuhkan Better Auth.
+
+Jangan membuat sistem autentikasi sendiri yang menduplikasi Better Auth.
+
+Gunakan schema generator resmi Better Auth dan integrasikan hasilnya dengan Drizzle.
+
+Tabel autentikasi yang diperlukan mengikuti konfigurasi Better Auth, termasuk:
+- user
+- session
+- account
+- verification
+
+Tambahkan field role pada user sesuai konfigurasi Better Auth.
+
+Role yang diperbolehkan:
+- owner
+- admin
+
+Default role registrasi publik harus owner.
+
+Jangan pernah memperbolehkan pengguna menentukan role admin saat melakukan registrasi.
+
+Field role harus dilindungi dari mass assignment dan tidak boleh dapat diubah melalui endpoint profil.
+
+B. OWNER PROFILES
+
+Buat tabel owner_profiles.
+
+Informasi:
+- id
+- user_id
+- full_name
+- business_name
+- phone
+- address
+- profile_photo
+- approval_status
+- rejection_reason
+- verified_at
+- created_at
+- updated_at
+
+Approval status:
+- pending
+- approved
+- rejected
+- suspended
+
+Pemilik yang baru mendaftar memiliki status pending.
+
+Pemilik tidak boleh mempublikasikan listing sebelum mendapatkan persetujuan admin.
+
+C. KOST LISTINGS
+
+Buat tabel kost_listings.
+
+Field yang dibutuhkan:
+- id
+- owner_id
+- name
+- slug
+- description
+- address
+- province
+- city
+- district
+- subdistrict
+- postal_code
+- location
+- latitude
+- longitude
+- gender_policy
+- price_min
+- price_max
+- contact_phone
+- status
+- rejection_reason
+- verified_at
+- created_at
+- updated_at
+- deleted_at
+
+Gunakan data lokasi yang konsisten.
+
+Gunakan PostGIS dengan tipe geography(Point, 4326) untuk pencarian berdasarkan jarak.
+
+Status listing:
+- draft
+- pending
+- published
+- rejected
+- archived
+
+Aturan:
+- Owner hanya boleh mengelola kost miliknya sendiri.
+- Listing baru tidak otomatis dipublikasikan.
+- Admin dapat menyetujui atau menolak listing.
+- Listing rejected harus memiliki alasan.
+- Listing archived tidak muncul pada pencarian publik.
+- Listing deleted tidak langsung dihapus permanen jika masih berhubungan dengan transaksi atau review.
+
+Slug harus unik.
+
+D. KOST FACILITIES
+
+Buat tabel:
+- facilities
+- kost_listing_facilities
+
+Tujuannya agar fasilitas dapat digunakan kembali oleh berbagai listing.
+
+Contoh fasilitas:
+- WiFi
+- Parkir motor
+- Parkir mobil
+- Kamar mandi dalam
+- Kamar mandi luar
+- AC
+- Lemari
+- Kasur
+- Meja belajar
+- Dapur
+- Laundry
+- CCTV
+- Akses 24 jam
+
+Jangan menyimpan seluruh fasilitas sebagai satu string atau JSON array apabila relasi many-to-many lebih sesuai.
+
+E. KOST PHOTOS
+
+Buat tabel kost_photos.
+
+Field:
+- id
+- kost_id
+- object_key
+- image_url
+- alt_text
+- sort_order
+- is_cover
+- created_at
+
+Foto harus berhubungan dengan listing tertentu.
+
+Owner hanya bisa menambah, mengubah urutan, dan menghapus foto dari listing miliknya sendiri.
+
+F. KOST ROOMS
+
+Buat tabel kost_rooms.
+
+PENTING:
+Tabel ini harus merepresentasikan kamar fisik yang sebenarnya, bukan hanya kategori kamar.
+
+Contoh:
+- Kamar A01
+- Kamar A02
+- Kamar B01
+- Kamar B02
+
+Setiap kamar memiliki QR Code sendiri.
+
+Field:
+- id
+- kost_id
+- room_code
+- room_name
+- description
+- monthly_price
+- room_status
+- qr_public_token
+- qr_enabled
+- created_at
+- updated_at
+
+Room status:
+- available
+- occupied
+- unavailable
+
+Setiap kamar harus memiliki identitas unik dalam satu listing.
+
+QR Code harus terhubung dengan satu kamar fisik.
+
+G. ROOM OCCUPANCIES
+
+Buat tabel room_occupancies.
+
+Tabel ini sangat penting untuk sistem verifikasi review.
+
+Field:
+- id
+- kost_id
+- room_id
+- tenant_name
+- check_in_date
+- check_out_date
+- occupancy_status
+- notes
+- created_at
+- updated_at
+
+Occupancy status:
+- active
+- completed
+- cancelled
+
+Fungsinya adalah mencatat orang yang benar-benar menyewa kamar.
+
+Owner bertanggung jawab memasukkan data penghuni ketika penghuni mulai menyewa dan memperbarui data ketika masa tinggal selesai.
+
+Data penghuni bersifat PRIVATE.
+
+Data ini:
+- Tidak boleh ditampilkan kepada pengunjung publik.
+- Tidak boleh diambil melalui public API.
+- Tidak boleh digunakan untuk membuat direktori penghuni.
+- Hanya boleh dilihat oleh pemilik kost terkait dan admin sesuai kebutuhan.
+- Jangan mengumpulkan data pribadi yang tidak diperlukan.
+
+Jangan membuat sistem OTP atau kode undangan untuk review pada MVP.
+
+H. REVIEWS
+
+Buat sistem review berdasarkan kamar fisik.
+
+Review yang sudah dipublikasikan harus muncul pada halaman publik kost dan dapat dikelompokkan berdasarkan kamar.
+
+Field utama:
+- id
+- kost_id
+- room_id
+- matched_occupancy_id
+- verified_occupancy_id
+- reviewer_name
+- public_display_name
+- claimed_check_in_date
+- claimed_check_out_date
+- rating
+- comment
+- verification_status
+- publication_status
+- owner_reviewed_by
+- owner_reviewed_at
+- rejection_reason
+- created_at
+- updated_at
+
+Rating hanya boleh memiliki nilai 1 sampai 5.
+
+Verification status:
+- unmatched
+- possible_match
+- ambiguous
+- verified
+- rejected
+
+Publication status:
+- pending
+- published
+- rejected
+- hidden
+
+Aturan review:
+
+1. Review hanya dapat dikirim melalui QR Code kamar.
+2. Pengunjung tidak perlu login.
+3. QR Code hanya berfungsi sebagai pengarah ke halaman review.
+4. QR Code bukan bukti bahwa orang tersebut benar-benar penghuni.
+5. Form review memuat nama penghuni, periode tinggal, rating, dan komentar.
+6. Room ID harus berasal dari QR Code yang valid, bukan bebas ditentukan pengunjung.
+7. Backend mencocokkan nama, kamar, dan periode tinggal dengan room_occupancies.
+8. Jika ditemukan kandidat yang cocok, tandai sebagai possible_match.
+9. Jika ditemukan lebih dari satu kandidat, tandai sebagai ambiguous.
+10. Jika tidak ditemukan kandidat, tandai unmatched.
+11. Jangan memberikan informasi hasil pencocokan kepada pengunjung publik.
+12. Semua review baru masuk ke status pending.
+13. Pemilik mendapatkan notifikasi review baru.
+14. Pemilik melakukan pemeriksaan manual terhadap data penghuni.
+15. Jika dikonfirmasi, review dapat dipublikasikan.
+16. Jika ditolak, pemilik wajib memberikan alasan.
+17. Admin dapat melakukan pemeriksaan dan override status verifikasi atau publikasi.
+18. Pemilik tidak boleh mengubah rating atau isi komentar.
+19. Pemilik tidak boleh menghapus review negatif hanya karena tidak setuju dengan isinya.
+20. Admin memiliki kewenangan moderasi jika review mengandung spam, penghinaan, atau pelanggaran aturan.
+
+PENTING:
+Jangan membuat klaim bahwa AI atau algoritma bisa mengetahui secara pasti seseorang pernah tinggal di kost hanya berdasarkan nama atau scan QR.
+
+Verifikasi dilakukan dengan mencocokkan informasi yang dimasukkan pengunjung dengan data penghuni yang dikelola pemilik, kemudian dikonfirmasi oleh pemilik.
+
+Jika pemilik belum mencatat data penghuni, sistem tidak boleh menganggap pengunjung otomatis terverifikasi.
+
+Tambahkan unique constraint atau partial unique index agar satu occupancy yang sudah terverifikasi tidak dapat digunakan berulang kali untuk membuat review.
+
+Gunakan transaksi database untuk proses verifikasi agar tidak terjadi double approval atau duplikasi review.
+
+Jangan membuka data room_occupancies melalui endpoint publik.
+
+I. FINANCIAL RECORDS
+
+Buat tabel financial_records.
+
+Field:
+- id
+- owner_id
+- kost_id
+- room_id
+- record_type
+- category
+- description
+- amount
+- transaction_date
+- created_at
+- updated_at
+
+Record type:
+- income
+- expense
+
+Amount harus menggunakan tipe numeric/decimal, bukan floating point.
+
+Owner hanya boleh mengakses catatan keuangan miliknya sendiri.
+
+Buat endpoint:
+- Tambah catatan.
+- Edit catatan.
+- Hapus catatan.
+- Daftar catatan.
+- Filter berdasarkan tanggal.
+- Filter berdasarkan kategori.
+- Rekap pemasukan.
+- Rekap pengeluaran.
+- Rekap saldo.
+- Rekap per bulan.
+
+J. NOTIFICATIONS
+
+Buat tabel notifications.
+
+Field:
+- id
+- recipient_user_id
+- type
+- title
+- message
+- related_entity_type
+- related_entity_id
+- is_read
+- created_at
+- read_at
+
+Untuk MVP gunakan in-app notifications.
+
+Tidak perlu menggunakan layanan email eksternal untuk notifikasi review.
+
+Ketika pengunjung mengirim review:
+- Buat data review.
+- Buat notification untuk pemilik kost.
+- Tampilkan review pada daftar pending di dashboard pemilik.
+
+Simpan notification di database.
+
+Sediakan endpoint membaca notifikasi dan mengubah status menjadi read.
+
+Frontend dapat melakukan polling berkala atau refresh saat halaman aktif.
+
+Tidak perlu menambahkan layanan realtime berbayar.
+
+K. SUBSCRIPTIONS
+
+Siapkan sistem subscription sederhana untuk pemilik kost.
+
+Buat tabel:
+- subscription_plans
+- owner_subscriptions
+- subscription_payments
+
+Sistem pembayaran MVP menggunakan verifikasi manual oleh admin.
+
+Jangan mengintegrasikan payment gateway.
+
+Field penting:
+- owner_id
+- plan_id
+- start_date
+- end_date
+- status
+- payment_method
+- payment_amount
+- payment_proof
+- reviewed_by
+- reviewed_at
+- rejection_reason
+
+Admin dapat menyetujui atau menolak pembayaran.
+
+Jangan mengarang harga paket.
+Gunakan data paket yang dapat dikonfigurasi oleh admin.
+
+L. ADMIN LOGS
+
+Buat tabel admin_logs.
+
+Field:
+- id
+- admin_id
+- action
+- entity_type
+- entity_id
+- description
+- metadata
+- created_at
+
+Simpan tindakan penting admin, misalnya:
+- Approve owner.
+- Reject owner.
+- Approve listing.
+- Reject listing.
+- Hide review.
+- Publish review.
+- Approve subscription.
+- Reject subscription.
+- Change account status.
+
+Jangan menyimpan password, secret key, token autentikasi, atau data sensitif dalam metadata log.
+
+==================================================
+6. DATABASE RELATIONSHIPS
+==================================================
+
+Implementasikan relasi berikut:
+
+USER
+  ├── OWNER PROFILE
+  ├── KOST LISTINGS
+  │     ├── KOST PHOTOS
+  │     ├── KOST FACILITIES
+  │     ├── KOST ROOMS
+  │     │     ├── ROOM OCCUPANCIES
+  │     │     ├── REVIEWS
+  │     │     └── QR CODE
+  │     └── FINANCIAL RECORDS
+  │
+  ├── NOTIFICATIONS
+  ├── OWNER SUBSCRIPTIONS
+  └── ADMIN LOGS
+
+Perhatikan foreign key, cascade behavior, unique constraint, check constraint, dan index.
+
+Jangan menggunakan ON DELETE CASCADE secara sembarangan pada data review, pembayaran, audit log, dan transaksi keuangan.
+
+Gunakan soft delete jika diperlukan.
+
+==================================================
+7. AUTHENTICATION DAN AUTHORIZATION
+==================================================
+
+Gunakan Better Auth.
+
+Implementasikan:
+
+- Email and password registration.
+- Login.
+- Logout.
+- Session management.
+- Get current session.
+- Password update jika dibutuhkan.
+- Role-based authorization.
+
+Buat dua role:
+
+OWNER
+ADMIN
+
+Owner registration:
+- Setiap registrasi publik otomatis menjadi owner.
+- Tidak dapat memilih role admin.
+- Owner baru berstatus pending sampai diverifikasi admin.
+- Tidak boleh mengakses endpoint admin.
+
+Admin:
+- Tidak boleh dibuat melalui registrasi publik.
+- Admin dibuat melalui script bootstrap atau proses administratif yang aman.
+- Jangan membuat endpoint publik untuk mengubah role menjadi admin.
+
+Buat helper:
+- requireAuth()
+- requireOwner()
+- requireAdmin()
+- getCurrentUser()
+
+Jangan hanya mengandalkan middleware frontend untuk keamanan.
+
+Semua API yang membutuhkan akses owner atau admin harus melakukan validasi session dan role di server.
+
+Setiap query owner harus membatasi data berdasarkan user_id pemilik yang sedang login.
+
+Jangan hanya memeriksa keberadaan ID listing, room, atau financial record tanpa memeriksa kepemilikannya.
+
+Contoh:
+Ketika owner A mencoba mengakses listing owner B, server harus mengembalikan 403 atau 404 tanpa membocorkan data owner B.
+
+Jangan membuat public API yang memungkinkan pengunjung membaca daftar user atau penghuni.
+
+==================================================
+8. QR CODE SYSTEM
+==================================================
+
+Implementasikan QR Code per kamar fisik.
+
+Alur:
+
+1. Owner membuat kamar.
+2. Backend membuat qr_public_token acak yang aman.
+3. Backend menghasilkan URL halaman review berdasarkan token.
+4. Library qrcode menghasilkan gambar QR.
+5. Owner dapat mengunduh QR dalam PNG atau SVG.
+6. Owner dapat mencetak QR dan menempelkannya di kamar.
+7. Pengunjung scan QR menggunakan kamera HP.
+8. Pengunjung diarahkan ke halaman review kamar.
+9. Pengunjung mengisi form review tanpa login.
+
+Contoh URL:
+https://domain.com/review/{qr_public_token}
+
+Aturan:
+- Token harus dibuat secara acak dan sulit ditebak.
+- Token bukan password dan bukan bukti penghuni.
+- Token tidak boleh memberikan hak untuk melihat data privat.
+- QR Code hanya mengarahkan ke halaman review kamar.
+- Owner dapat menonaktifkan QR Code.
+- Owner dapat melakukan regenerasi QR jika QR lama disalahgunakan.
+- QR yang sudah dinonaktifkan tidak boleh menerima review baru.
+
+Buat API:
+- Generate QR.
+- Get QR.
+- Download QR.
+- Disable QR.
+- Regenerate QR.
+
+Jangan membuat kode undangan tambahan.
+Jangan meminta pengunjung meminta kode kepada pemilik kost.
+Jangan membuat sistem login untuk reviewer.
+
+==================================================
+9. REVIEW VERIFICATION SYSTEM
+==================================================
+
+Ini merupakan fitur penting dan harus diimplementasikan dengan benar.
+
+Alur lengkap:
+
+A. PENGUNJUNG
+
+1. Scan QR Code kamar.
+2. Halaman review terbuka.
+3. Backend memvalidasi token QR.
+4. Tampilkan nama kost dan kamar.
+5. Pengunjung mengisi:
+   - Nama sesuai data penghuni.
+   - Periode mulai tinggal.
+   - Periode selesai tinggal jika sudah selesai.
+   - Rating 1 sampai 5.
+   - Komentar.
+   - Nama tampilan publik jika ingin menggunakan nama berbeda.
+6. Pengunjung menyelesaikan Cloudflare Turnstile.
+7. Pengunjung submit review.
+8. Backend memvalidasi input.
+9. Backend memvalidasi Turnstile.
+10. Backend menyimpan review dengan status pending.
+
+B. BACKEND MATCHING
+
+Lakukan pencocokan data dengan room_occupancies berdasarkan:
+- Room ID dari QR.
+- Nama yang dinormalisasi.
+- Periode tinggal.
+- Status occupancy.
+
+Gunakan pencocokan yang konservatif.
+
+Normalisasi nama:
+- Trim whitespace.
+- Case-insensitive.
+- Normalisasi spasi.
+- Jangan menganggap nama yang hanya mirip sebagai bukti identitas.
+
+Kemungkinan hasil:
+- possible_match
+- ambiguous
+- unmatched
+
+Jangan otomatis mempublikasikan review hanya karena nama cocok.
+
+Jangan menampilkan hasil pencocokan kepada publik.
+
+Semua hasil tetap masuk proses verifikasi pemilik.
+
+C. OWNER
+
+Pemilik mendapatkan notifikasi.
+
+Pada dashboard:
+- Menampilkan review pending.
+- Menampilkan informasi review.
+- Menampilkan data kandidat occupancy yang cocok jika ada.
+- Memungkinkan pemilik mencocokkan review dengan data penghuni.
+- Pemilik dapat mengonfirmasi bahwa reviewer adalah penghuni.
+- Pemilik dapat menolak verifikasi dengan alasan.
+
+Jika berhasil:
+- verification_status = verified
+- publication_status = published
+- Simpan siapa yang melakukan verifikasi dan waktunya.
+- Hubungkan review dengan occupancy yang sudah diverifikasi.
+
+Jika ditolak:
+- verification_status = rejected
+- publication_status = rejected
+- Simpan alasan penolakan.
+
+D. ADMIN
+
+Admin dapat:
+- Melihat review.
+- Melihat status verifikasi.
+- Memeriksa laporan review.
+- Melakukan override jika diperlukan.
+- Menyembunyikan review yang melanggar ketentuan.
+- Mencatat alasan moderasi.
+- Memeriksa audit log.
+
+E. PUBLIC REVIEW
+
+Review yang tampil secara publik:
+- Hanya review dengan publication_status published.
+- Menampilkan rating.
+- Menampilkan komentar.
+- Menampilkan nama tampilan publik.
+- Menampilkan kamar terkait.
+- Menampilkan tanggal review.
+
+Jangan pernah menampilkan:
+- Data lengkap penghuni.
+- Nomor HP penghuni.
+- Catatan internal pemilik.
+- Informasi verifikasi yang sensitif.
+- Data kandidat penghuni lain.
+
+Rating rata-rata kost harus dihitung dari review published saja.
+
+Sediakan pengelompokan review berdasarkan kamar.
+
+==================================================
+10. CLOUDFLARE R2 STORAGE
+==================================================
+
+Gunakan Cloudflare R2 untuk penyimpanan foto kost.
+
+Gunakan S3-compatible API.
+
+Gunakan AWS SDK for JavaScript v3 dan presigned URL.
+
+Konfigurasi environment:
+- R2_ACCOUNT_ID
+- R2_ACCESS_KEY_ID
+- R2_SECRET_ACCESS_KEY
+- R2_BUCKET_NAME
+- R2_ENDPOINT
+- R2_PUBLIC_URL
+
+Implementasikan:
+- Generate presigned upload URL.
+- Upload foto.
+- Konfirmasi upload.
+- Simpan metadata foto.
+- Hapus foto.
+- Atur foto cover.
+- Atur urutan foto.
+
+Alur upload:
+
+1. Owner login.
+2. Owner meminta presigned URL.
+3. Backend memeriksa kepemilikan listing.
+4. Backend membuat object key yang unik.
+5. Backend mengembalikan presigned PUT URL.
+6. Frontend mengunggah file langsung ke R2.
+7. Frontend mengirim konfirmasi kepada backend.
+8. Backend memeriksa keberadaan object menggunakan metadata R2.
+9. Backend menyimpan metadata di kost_photos.
+
+Keamanan:
+- Jangan pernah mengekspos R2_SECRET_ACCESS_KEY.
+- Jangan memperbolehkan pengguna menentukan object key sesuka hati.
+- Batasi upload hanya untuk file gambar.
+- Validasi MIME type dan ukuran.
+- Gunakan nama object yang dibuat server.
+- Jangan izinkan owner menghapus foto milik owner lain.
+- Jangan menyimpan file gambar di database.
+- Jangan menjadikan presigned URL permanen.
+
+Gunakan masa berlaku URL upload yang pendek.
+
+Jika ada object yang sudah diunggah tetapi konfirmasi database gagal, pertimbangkan mekanisme cleanup.
+
+==================================================
+11. CLOUDFLARE TURNSTILE
+==================================================
+
+Gunakan Cloudflare Turnstile untuk melindungi pengiriman review publik.
+
+Environment:
+NEXT_PUBLIC_TURNSTILE_SITE_KEY
+TURNSTILE_SECRET_KEY
+
+PENTING:
+Validasi Turnstile wajib dilakukan di backend.
+
+Jangan hanya memeriksa bahwa token tersedia dari frontend.
+
+Backend harus mengirim token ke endpoint Siteverify Cloudflare:
+
+https://challenges.cloudflare.com/turnstile/v0/siteverify
+
+Periksa hasil validasi.
+
+Jika token:
+- Invalid
+- Expired
+- Sudah pernah digunakan
+- Tidak valid untuk hostname yang diizinkan
+
+Maka tolak request.
+
+Secret key tidak boleh masuk ke frontend, response API, atau repository publik.
+
+Ikuti dokumentasi resmi Cloudflare Turnstile.
+
+==================================================
+12. RATE LIMITING DAN ANTI-SPAM
+==================================================
+
+Selain Turnstile, implementasikan rate limiting.
+
+Terutama untuk:
+- Review submission.
+- Login.
+- Owner registration.
+- Public search API jika diperlukan.
+- Endpoint yang dapat membebani database.
+
+Gunakan pendekatan yang kompatibel dengan stack saat ini.
+
+Untuk MVP tidak perlu menambahkan Redis atau layanan berbayar.
+
+Jika menggunakan database untuk rate limiting:
+- Buat strategi penyimpanan yang efisien.
+- Hindari query yang terlalu sering.
+- Tambahkan expiration atau cleanup.
+- Jangan menyimpan IP mentah jika tidak diperlukan.
+- Gunakan HMAC/hash untuk fingerprint apabila diperlukan.
+- Batasi akses endpoint sensitif.
+
+Jangan menganggap CAPTCHA sebagai satu-satunya lapisan keamanan.
+
+==================================================
+13. GEOGRAPHIC SEARCH / POSTGIS
+==================================================
+
+Havena Kost membutuhkan fitur pencarian berdasarkan lokasi.
+
+Gunakan PostGIS di Neon.
+
+Aktifkan extension PostGIS melalui migration SQL.
+
+Gunakan:
+- geography(Point, 4326)
+- ST_DWithin
+- ST_Distance
+- GiST index
+
+Contoh kebutuhan:
+
+Pengunjung mengirim:
+- latitude
+- longitude
+- radius
+- filter harga
+- filter fasilitas
+- filter area
+- tipe kost
+
+Backend harus bisa:
+1. Mencari listing yang lokasinya berada dalam radius tertentu.
+2. Menghitung jarak dalam meter.
+3. Mengurutkan dari jarak terdekat.
+4. Menggabungkan pencarian dengan filter harga dan fasilitas.
+5. Menggunakan pagination.
+
+Pastikan urutan longitude dan latitude benar ketika menggunakan ST_MakePoint(longitude, latitude).
+
+Validasi koordinat:
+- Latitude -90 sampai 90.
+- Longitude -180 sampai 180.
+
+Batasi radius pencarian yang terlalu besar.
+Gunakan limit pagination yang wajar.
+
+Jangan menggunakan Google Maps API.
+Jangan membuat sistem geocoding berbayar.
+
+Backend hanya menyediakan data lokasi dan hasil pencarian.
+Frontend yang menampilkan peta menggunakan Leaflet.
+
+==================================================
+14. PUBLIC API ENDPOINTS
+==================================================
+
+Buat endpoint publik tanpa autentikasi untuk pengunjung.
+
+A. KOST
+
+GET /api/public/kost
+
+Fitur:
+- Pagination.
+- Search by keyword.
+- Filter lokasi.
+- Filter kecamatan.
+- Filter kota.
+- Filter harga minimum dan maksimum.
+- Filter fasilitas.
+- Filter gender policy.
+- Filter berdasarkan ketersediaan.
+- Sort terbaru.
+- Sort harga.
+- Sort jarak terdekat jika koordinat disediakan.
+
+GET /api/public/kost/[slug]
+
+Mengambil detail kost yang sudah published.
+
+GET /api/public/kost/[slug]/rooms
+
+Mengambil daftar kamar yang boleh ditampilkan ke publik.
+
+GET /api/public/kost/[slug]/reviews
+
+Mengambil review yang sudah published.
+
+B. QR REVIEW
+
+GET /api/public/review/[token]
+
+Memvalidasi QR dan mengembalikan informasi publik:
+- Nama kost.
+- Nama kamar.
+- Informasi yang diperlukan untuk form.
+
+Jangan memberikan informasi data penghuni.
+
+POST /api/public/reviews
+
+Menerima pengiriman review.
+
+Validasi:
+- QR token valid.
+- QR aktif.
+- Listing masih dapat menerima review.
+- Turnstile valid.
+- Input sesuai schema.
+- Rating 1 sampai 5.
+- Komentar memiliki panjang yang wajar.
+- Rate limit tidak terlampaui.
+
+Kemudian simpan review dengan status pending.
+
+C. LOCATION
+
+GET /api/public/locations/search
+
+Untuk pencarian kost berdasarkan koordinat dan radius.
+
+D. WHATSAPP
+
+Backend hanya perlu menyediakan nomor kontak yang memang boleh dipublikasikan.
+
+Tidak perlu WhatsApp Business API.
+
+Frontend akan membentuk URL wa.me.
+
+==================================================
+15. OWNER API ENDPOINTS
+==================================================
+
+Semua endpoint owner wajib memerlukan session dan role owner.
+
+A. PROFILE
+
+GET /api/owner/profile
+PATCH /api/owner/profile
+
+B. LISTINGS
+
+GET /api/owner/listings
+POST /api/owner/listings
+GET /api/owner/listings/[id]
+PATCH /api/owner/listings/[id]
+DELETE /api/owner/listings/[id]
+
+Owner hanya mengelola listing miliknya.
+
+C. FACILITIES
+
+GET /api/owner/listings/[id]/facilities
+PUT /api/owner/listings/[id]/facilities
+
+D. PHOTOS
+
+POST /api/owner/listings/[id]/photos/presign
+POST /api/owner/listings/[id]/photos/confirm
+DELETE /api/owner/photos/[photoId]
+PATCH /api/owner/photos/[photoId]
+
+E. ROOMS
+
+GET /api/owner/listings/[id]/rooms
+POST /api/owner/listings/[id]/rooms
+GET /api/owner/rooms/[roomId]
+PATCH /api/owner/rooms/[roomId]
+DELETE /api/owner/rooms/[roomId]
+
+F. QR CODE
+
+POST /api/owner/rooms/[roomId]/qr
+GET /api/owner/rooms/[roomId]/qr
+DELETE /api/owner/rooms/[roomId]/qr
+
+Sediakan juga fungsi regenerate QR.
+
+G. OCCUPANCIES
+
+GET /api/owner/rooms/[roomId]/occupancies
+POST /api/owner/rooms/[roomId]/occupancies
+PATCH /api/owner/occupancies/[occupancyId]
+DELETE /api/owner/occupancies/[occupancyId]
+
+Pemilik harus bisa mengelola penghuni yang sedang maupun pernah menyewa.
+
+Jangan menampilkan data penghuni kepada publik.
+
+H. REVIEWS
+
+GET /api/owner/reviews
+GET /api/owner/reviews/[reviewId]
+
+POST /api/owner/reviews/[reviewId]/verify
+POST /api/owner/reviews/[reviewId]/reject
+
+Pemilik hanya dapat memverifikasi status penghuni.
+
+Pemilik tidak boleh mengedit isi review.
+
+I. FINANCIAL RECORDS
+
+GET /api/owner/finances
+POST /api/owner/finances
+GET /api/owner/finances/[id]
+PATCH /api/owner/finances/[id]
+DELETE /api/owner/finances/[id]
+
+GET /api/owner/finances/summary
+
+J. NOTIFICATIONS
+
+GET /api/owner/notifications
+PATCH /api/owner/notifications/[id]/read
+POST /api/owner/notifications/read-all
+
+K. SUBSCRIPTIONS
+
+GET /api/owner/subscription
+GET /api/owner/subscription/plans
+POST /api/owner/subscription/payment
+
+Gunakan verifikasi pembayaran manual.
+
+==================================================
+16. ADMIN API ENDPOINTS
+==================================================
+
+Semua endpoint admin wajib memerlukan session dengan role admin.
+
+A. DASHBOARD
+
+GET /api/admin/dashboard
+
+Berisi ringkasan:
+- Total pemilik.
+- Total listing.
+- Total kamar.
+- Total review.
+- Review pending.
+- Listing pending.
+- Pemilik pending.
+- Subscription aktif.
+- Pertumbuhan data berdasarkan periode.
+
+B. OWNER MANAGEMENT
+
+GET /api/admin/owners
+GET /api/admin/owners/[id]
+POST /api/admin/owners/[id]/approve
+POST /api/admin/owners/[id]/reject
+PATCH /api/admin/owners/[id]/status
+
+C. LISTING MANAGEMENT
+
+GET /api/admin/listings
+GET /api/admin/listings/[id]
+POST /api/admin/listings/[id]/approve
+POST /api/admin/listings/[id]/reject
+PATCH /api/admin/listings/[id]/status
+
+D. REVIEW MANAGEMENT
+
+GET /api/admin/reviews
+GET /api/admin/reviews/[id]
+POST /api/admin/reviews/[id]/publish
+POST /api/admin/reviews/[id]/hide
+POST /api/admin/reviews/[id]/verify
+POST /api/admin/reviews/[id]/reject
+
+E. SUBSCRIPTIONS
+
+GET /api/admin/subscriptions
+GET /api/admin/subscription-plans
+POST /api/admin/subscription-plans
+PATCH /api/admin/subscription-plans/[id]
+DELETE /api/admin/subscription-plans/[id]
+
+POST /api/admin/subscription-payments/[id]/approve
+POST /api/admin/subscription-payments/[id]/reject
+
+F. AUDIT LOGS
+
+GET /api/admin/logs
+
+Setiap tindakan administratif penting harus tercatat.
+
+==================================================
+17. API RESPONSE STANDARD
+==================================================
+
+Gunakan response JSON yang konsisten.
+
+Success:
+
+{
+  "success": true,
+  "message": "Request berhasil",
+  "data": {},
+  "meta": null
+}
+
+Error:
+
+{
+  "success": false,
+  "message": "Terjadi kesalahan",
+  "errors": null
+}
+
+Gunakan HTTP status code dengan benar:
+
+200 - OK
+201 - Created
+204 - No Content jika sesuai
+400 - Bad Request
+401 - Unauthorized
+403 - Forbidden
+404 - Not Found
+409 - Conflict
+422 - Validation Error
+429 - Too Many Requests
+500 - Internal Server Error
+
+Jangan mengirim stack trace ke client.
+
+Jangan mengirim detail database, credential, atau query SQL dalam response.
+
+Buat centralized error handler.
+
+==================================================
+18. VALIDATION DAN INPUT SECURITY
+==================================================
+
+Gunakan Zod untuk memvalidasi seluruh input API.
+
+Buat schema terpisah untuk:
+- Auth.
+- Owner profile.
+- Kost listing.
+- Facility.
+- Room.
+- Occupancy.
+- Review.
+- Financial records.
+- Subscription.
+- Admin operations.
+
+Validasi:
+- Required fields.
+- String length.
+- Email.
+- Phone.
+- Date.
+- Numeric.
+- Enum.
+- UUID atau identifier.
+- Latitude dan longitude.
+- Pagination.
+
+Jangan mempercayai input frontend.
+
+Jangan menerima field yang tidak diizinkan.
+
+Cegah mass assignment.
+
+Gunakan parameterized queries.
+
+Jangan menampilkan internal database error kepada publik.
+
+==================================================
+19. DATABASE INDEX DAN PERFORMANCE
+==================================================
+
+Tambahkan index yang sesuai untuk:
+
+- Email user.
+- Owner ID.
+- Kost slug.
+- Kost status.
+- Kost city.
+- Kost district.
+- Room kost ID.
+- Occupancy room ID.
+- Review room ID.
+- Review publication status.
+- Review verification status.
+- Financial owner ID.
+- Financial transaction date.
+- Notification recipient ID.
+- Subscription status.
+- Spatial location GiST index.
+
+Gunakan pagination untuk seluruh endpoint list.
+
+Jangan mengambil seluruh data sekaligus.
+
+Hindari N+1 query.
+
+Pilih kolom yang benar-benar dibutuhkan.
+
+Untuk listing publik, tampilkan hanya data yang boleh dipublikasikan.
+
+Untuk pencarian geografis, optimalkan dengan index PostGIS.
+
+==================================================
+20. SUBSCRIPTION DAN PEMBAYARAN
+==================================================
+
+Pada MVP:
+- Tidak menggunakan Midtrans.
+- Tidak menggunakan Xendit.
+- Tidak menggunakan Stripe.
+- Tidak menggunakan payment gateway lainnya.
+
+Gunakan sistem pembayaran manual.
+
+Owner dapat melihat paket langganan.
+
+Owner dapat mengajukan pembayaran.
+
+Admin dapat memeriksa dan menyetujui pembayaran.
+
+Status pembayaran:
+- pending
+- approved
+- rejected
+
+Jika ada bukti pembayaran, simpan menggunakan Cloudflare R2.
+
+Jangan menganggap pembayaran berhasil hanya karena owner mengirim formulir pembayaran.
+
+Akses fitur yang dibatasi subscription harus ditentukan berdasarkan status subscription yang sudah diverifikasi admin.
+
+==================================================
+21. SECURITY CHECKLIST
+==================================================
+
+Keamanan harus menjadi prioritas.
+
+Implementasikan:
+
+1. Session validation.
+2. Role-based authorization.
+3. Ownership validation.
+4. Zod input validation.
+5. SQL parameterization.
+6. Turnstile server-side validation.
+7. Rate limiting.
+8. Secure cookies sesuai konfigurasi Better Auth.
+9. Secret environment variables.
+10. Safe error responses.
+11. Upload validation.
+12. Protection against mass assignment.
+13. Audit logging.
+14. Data privacy.
+15. Pagination limits.
+16. Transaction safety.
+
+JANGAN:
+- Mengekspos DATABASE_URL.
+- Mengekspos BETTER_AUTH_SECRET.
+- Mengekspos R2_SECRET_ACCESS_KEY.
+- Mengekspos TURNSTILE_SECRET_KEY.
+- Mengekspos seluruh data penghuni.
+- Mengizinkan owner mengakses listing owner lain.
+- Mengizinkan owner mengubah role.
+- Mengizinkan registrasi admin secara publik.
+- Mengizinkan review tanpa validasi Turnstile.
+- Mengizinkan review menggunakan QR yang sudah dinonaktifkan.
+- Mengizinkan duplikasi review dari occupancy yang sudah digunakan.
+- Mengizinkan review otomatis published hanya karena nama cocok.
+- Menggunakan data dummy untuk menggantikan database produksi.
+
+==================================================
+22. ENVIRONMENT VARIABLES
+==================================================
+
+Gunakan environment variables berikut.
+
+DATABASE:
+
+DATABASE_URL=
+
+BETTER AUTH:
+
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=
+
+CLOUDFLARE R2:
+
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=
+R2_ENDPOINT=
+R2_PUBLIC_URL=
+
+CLOUDFLARE TURNSTILE:
+
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+
+SECURITY:
+
+REVIEW_RATE_LIMIT_HMAC_SECRET=
+
+APP:
+
+APP_BASE_URL=
+
+Buat file .env.example tanpa credential asli.
+
+Jika credential belum tersedia di environment, jangan membuat credential palsu.
+
+Jangan menulis secret ke dalam source code.
+
+Jangan mencetak isi .env ke terminal output atau laporan akhir.
+
+Pastikan .env masuk .gitignore.
+
+==================================================
+23. DATABASE MIGRATIONS
+==================================================
+
+Gunakan Drizzle Kit.
+
+Schema database harus berada di dalam repository dan dapat dilacak melalui Git.
+
+Gunakan migration SQL yang versioned.
+
+Jangan melakukan perubahan database secara manual tanpa migration.
+
+Jangan menggunakan drizzle-kit push pada database produksi sebagai pengganti migration yang terkontrol.
+
+Buat migration untuk:
+- Auth schema.
+- Owner profiles.
+- Kost listings.
+- Facilities.
+- Photos.
+- Rooms.
+- Occupancies.
+- Reviews.
+- Notifications.
+- Financial records.
+- Subscriptions.
+- Admin logs.
+- PostGIS extension.
+- Spatial index.
+- Constraints.
+- Foreign keys.
+
+Jika database sudah memiliki tabel atau data:
+- Periksa struktur yang sudah ada.
+- Jangan langsung menghapus tabel.
+- Jangan melakukan destructive migration.
+- Buat migration yang mempertahankan data lama jika memungkinkan.
+- Jelaskan migration yang berpotensi mengubah atau menghapus data.
+- Jangan menjalankan reset database produksi.
+
+Jangan menjalankan migration remote yang berpotensi destruktif tanpa memastikan target database adalah database development yang memang ditujukan untuk pengujian.
+
+==================================================
+24. TESTING
+==================================================
+
+Backend tidak boleh dianggap selesai hanya karena tidak ada error ketika dijalankan.
+
+Buat pengujian minimal untuk:
+
+AUTHENTICATION:
+- Owner dapat registrasi.
+- Owner dapat login.
+- Owner dapat logout.
+- Admin dapat login.
+- Public user tidak memiliki akses dashboard.
+
+AUTHORIZATION:
+- Owner tidak dapat mengakses data owner lain.
+- Owner tidak dapat mengakses API admin.
+- Owner tidak dapat mengubah role.
+- Pengunjung publik tidak dapat mengakses data private.
+
+KOST:
+- Owner dapat membuat listing.
+- Owner dapat mengubah listing sendiri.
+- Owner tidak dapat mengubah listing orang lain.
+- Listing pending tidak muncul di public API.
+- Listing approved dapat muncul pada public API.
+
+ROOM:
+- Owner dapat membuat kamar.
+- QR terhubung dengan kamar yang benar.
+- QR nonaktif ditolak.
+
+REVIEW:
+- Public dapat mengirim review tanpa login.
+- Review harus melalui Turnstile.
+- Rating di luar 1 sampai 5 ditolak.
+- QR tidak valid ditolak.
+- QR nonaktif ditolak.
+- Review masuk pending.
+- Review tidak langsung muncul pada halaman publik.
+- Owner dapat memverifikasi penghuni.
+- Owner tidak dapat mengedit isi review.
+- Occupancy yang sudah digunakan tidak dapat dipakai untuk review kedua.
+- Admin dapat melakukan moderasi.
+
+STORAGE:
+- Owner dapat memperoleh presigned URL untuk listing miliknya.
+- Owner tidak dapat mengunggah ke listing milik orang lain.
+- File di luar format yang diperbolehkan ditolak.
+
+FINANCIAL:
+- Owner hanya dapat mengakses data keuangan sendiri.
+- Amount divalidasi.
+- Rekap bulanan berjalan dengan benar.
+
+ADMIN:
+- Admin dapat menyetujui owner.
+- Admin dapat menyetujui listing.
+- Admin dapat mengelola review.
+- Aktivitas admin tercatat.
+
+Gunakan testing framework yang sesuai dengan repository.
+
+Untuk testing Turnstile, gunakan testing key atau mock yang hanya aktif di lingkungan test.
+
+Jangan membuat bypass Turnstile yang dapat digunakan di production.
+
+==================================================
+25. DOCUMENTATION
+==================================================
+
+Buat dokumentasi backend yang mudah dipahami developer lain.
+
+Minimal:
+
+README.md
+
+docs/
+  backend-architecture.md
+  database-schema.md
+  api-endpoints.md
+  authentication.md
+  review-verification-flow.md
+  storage-r2.md
+  deployment.md
+
+Jelaskan:
+- Struktur backend.
+- Cara install.
+- Cara menjalankan development server.
+- Cara menyiapkan Neon.
+- Cara menjalankan database migration.
+- Cara menyiapkan Better Auth.
+- Cara menyiapkan Cloudflare R2.
+- Cara menyiapkan Turnstile.
+- Daftar environment variables.
+- Daftar endpoint.
+- Request dan response.
+- Role permission.
+- Flow verifikasi review.
+- Proses deployment Vercel.
+
+Sediakan contoh request dan response API.
+
+Jika memungkinkan, sediakan OpenAPI specification agar endpoint mudah diuji.
+
+==================================================
+26. ACCEPTANCE CRITERIA
+==================================================
+
+Backend baru dapat dianggap selesai jika:
+
+1. Project berhasil dijalankan.
+2. TypeScript tidak memiliki error.
+3. Database Neon dapat terkoneksi.
+4. Drizzle schema telah dibuat.
+5. Migration telah disiapkan.
+6. PostGIS aktif.
+7. Better Auth berjalan.
+8. Role owner dan admin berjalan.
+9. Owner tidak dapat melakukan akses lintas akun.
+10. Admin dapat mengelola data platform.
+11. Public API dapat mencari kost.
+12. Public API dapat mengambil detail listing.
+13. Owner dapat melakukan CRUD kost.
+14. Owner dapat melakukan CRUD kamar.
+15. Owner dapat mengelola data penghuni.
+16. QR Code dapat dibuat per kamar.
+17. Review dapat dikirim tanpa login.
+18. Turnstile divalidasi pada server.
+19. Review masuk status pending.
+20. Owner menerima in-app notification.
+21. Owner dapat memverifikasi status penghuni.
+22. Review hanya tampil setelah dipublikasikan.
+23. Owner tidak bisa mengubah isi review.
+24. Admin dapat memoderasi review.
+25. Upload foto berhasil melalui R2.
+26. Financial records dapat dikelola.
+27. Subscription manual dapat dikelola.
+28. Audit log admin berjalan.
+29. Seluruh API menggunakan validation dan authorization.
+30. Dokumentasi tersedia.
+31. Testing utama berhasil.
+
+==================================================
+27. DEVELOPMENT WORKFLOW
+==================================================
+
+Kerjakan dalam beberapa tahap.
+
+PHASE 1 — REPOSITORY AUDIT
+- Periksa repository.
+- Periksa dependency.
+- Periksa konfigurasi.
+- Tentukan apa yang sudah tersedia.
+- Buat implementasi plan.
+
+PHASE 2 — DATABASE FOUNDATION
+- Setup Drizzle.
+- Setup Neon.
+- Setup PostGIS.
+- Buat Better Auth schema.
+- Buat application schema.
+- Buat migration.
+
+PHASE 3 — AUTHENTICATION & AUTHORIZATION
+- Implementasi Better Auth.
+- Owner registration.
+- Login.
+- Session.
+- Admin bootstrap.
+- Role middleware/helper.
+- Ownership authorization.
+
+PHASE 4 — CORE KOST API
+- CRUD listings.
+- Facilities.
+- Photos metadata.
+- Rooms.
+- Public search.
+- Public detail.
+
+PHASE 5 — LOCATION API
+- PostGIS.
+- Nearby search.
+- Radius filter.
+- Distance sorting.
+- Pagination.
+
+PHASE 6 — STORAGE
+- Setup R2.
+- Presigned upload.
+- Confirm upload.
+- Delete image.
+
+PHASE 7 — QR & REVIEW
+- Generate QR per kamar.
+- Public QR validation.
+- Public review submission.
+- Turnstile.
+- Occupancy matching.
+- Owner verification.
+- Admin moderation.
+- In-app notification.
+
+PHASE 8 — OWNER FEATURES
+- Occupancy management.
+- Financial records.
+- Financial summaries.
+- Subscription.
+- Notifications.
+
+PHASE 9 — ADMIN FEATURES
+- Owner approval.
+- Listing moderation.
+- Review moderation.
+- Subscription management.
+- Dashboard statistics.
+- Audit logs.
+
+PHASE 10 — TESTING & DOCUMENTATION
+- Type checking.
+- Lint.
+- Tests.
+- API tests.
+- Security checks.
+- Documentation.
+- Deployment readiness.
+
+Jangan melompat langsung ke seluruh fitur tanpa memastikan fondasi database, auth, dan authorization bekerja.
+
+Setiap phase harus diuji sebelum melanjutkan ke phase berikutnya.
+
+==================================================
+28. FINAL INSTRUCTIONS
+==================================================
+
+Prioritaskan akurasi implementasi, keamanan, konsistensi database, dan kesesuaian dengan konsep produk Havena Kost.
+
+Jangan mengarang fitur baru yang tidak diminta.
+
+Jangan mengganti teknologi yang sudah ditentukan.
+
+Jangan membuat sistem yang lebih kompleks dari kebutuhan MVP.
+
+Jangan membangun frontend ulang.
+
+Jangan menambahkan API key atau layanan berbayar yang tidak dibutuhkan.
+
+Jangan mengirim credential ke repository.
+
+Jangan melakukan destructive migration.
+
+Jika ada masalah kompatibilitas package:
+1. Periksa dokumentasi resmi terbaru.
+2. Periksa versi dependency.
+3. Pilih implementasi stabil yang kompatibel.
+4. Jelaskan perubahan teknisnya.
+
+Gunakan dokumentasi resmi sebagai sumber utama:
+
+NEXT.JS:
+https://nextjs.org/docs/app/getting-started/route-handlers
+
+BETTER AUTH:
+https://www.better-auth.com/docs/installation
+
+BETTER AUTH DRIZZLE:
+https://better-auth.com/docs/adapters/drizzle
+
+DRIZZLE NEON:
+https://orm.drizzle.team/docs/connect-neon
+
+DRIZZLE MIGRATIONS:
+https://orm.drizzle.team/docs/migrations
+
+POSTGIS:
+https://postgis.net/documentation/
+
+NEON:
+https://neon.com/docs
+
+CLOUDFLARE R2:
+https://developers.cloudflare.com/r2/
+
+R2 PRESIGNED URL:
+https://developers.cloudflare.com/r2/api/s3/presigned-urls/
+
+CLOUDFLARE TURNSTILE:
+https://developers.cloudflare.com/turnstile/get-started/
+
+Jangan mengandalkan dokumentasi lama jika sudah ada dokumentasi resmi yang lebih baru.
+
+Mulai dengan melakukan audit repository, lalu implementasikan backend Havena Kost sampai seluruh acceptance criteria dapat diuji.
+
+Pada akhir pekerjaan, berikan laporan:
+- Apa saja yang berhasil dibuat.
+- Struktur file backend.
+- Database tables.
+- Migration yang dibuat.
+- Daftar API.
+- Environment variables yang diperlukan.
+- Cara menjalankan backend.
+- Cara menjalankan migration.
+- Hasil testing.
+- Fitur yang belum selesai.
+- Kendala dan keputusan teknis yang perlu diketahui developer.
+
+Jangan mengklaim fitur berhasil jika belum benar-benar diimplementasikan dan diuji.
