@@ -7,7 +7,7 @@
 # kecuali memang ingin membuat data demo.
 #
 # Pemakaian:
-#   ADMIN_EMAIL=admin@havenakost.app ADMIN_PASSWORD='...' \
+#   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='...' \
 #     ./scripts/e2e-demo.sh https://havenakost.vercel.app
 #
 #   ./scripts/e2e-demo.sh http://localhost:3000 --keep   # data demo tidak diarsipkan

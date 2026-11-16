@@ -212,7 +212,7 @@ DATABASE_URL='postgresql://...' \
 BETTER_AUTH_SECRET='<secret produksi>' \
 BETTER_AUTH_URL='https://havenakost.vercel.app' \
 APP_BASE_URL='https://havenakost.vercel.app' \
-ADMIN_BOOTSTRAP_EMAIL='admin@havenakost.app' \
+ADMIN_BOOTSTRAP_EMAIL='admin@example.com' \
 ADMIN_BOOTSTRAP_PASSWORD='<password-kuat>' \
 npm run admin:create
 ```
@@ -270,7 +270,7 @@ Script ini hanya melakukan GET + login, aman dijalankan ke produksi:
 ./scripts/smoke-test.sh https://havenakost.vercel.app
 
 # dengan cek endpoint admin
-ADMIN_EMAIL=admin@havenakost.app ADMIN_PASSWORD='...' \
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='...' \
   ./scripts/smoke-test.sh https://havenakost.vercel.app
 
 # lokal
@@ -285,7 +285,7 @@ Membuat owner baru → approval admin → listing → kamar → QR → penghuni 
 submit → approve → verifikasi endpoint publik → (arsip listing).
 
 ```bash
-ADMIN_EMAIL=admin@havenakost.app ADMIN_PASSWORD='...' \
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='...' \
   ./scripts/e2e-demo.sh https://havenakost.vercel.app
 
 # simpan data demo (jangan diarsipkan)
@@ -312,7 +312,7 @@ ADMIN_JAR=/tmp/admin.cj ; OWNER_JAR=/tmp/owner.cj
 ```bash
 curl -s -c $ADMIN_JAR -X POST "$B/api/auth/sign-in/email" \
   -H 'Content-Type: application/json' -H "Origin: $B" \
-  -d '{"email":"admin@havenakost.app","password":"<password>"}' | jq
+  -d '{"email":"admin@example.com","password":"<password>"}' | jq
 ```
 
 ### 8.2 Registrasi owner

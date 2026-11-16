@@ -64,7 +64,7 @@ Smoke test cepat ke API yang sedang berjalan (read-only):
 ```bash
 ./scripts/smoke-test.sh https://havenakost.vercel.app
 
-ADMIN_EMAIL=admin@havenakost.app ADMIN_PASSWORD='...' \
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='...' \
   ./scripts/smoke-test.sh https://havenakost.vercel.app
 ```
 
@@ -72,7 +72,7 @@ E2E demo lengkap (owner → approval → listing → kamar → QR → publik) ya
 **menulis data**:
 
 ```bash
-ADMIN_EMAIL=admin@havenakost.app ADMIN_PASSWORD='...' \
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='...' \
   ./scripts/e2e-demo.sh https://havenakost.vercel.app
 ```
 
