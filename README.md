@@ -4,6 +4,19 @@ Platform direktori dan pencarian kost wilayah Malang Raya. Repository ini kini
 memuat **backend API** (Next.js App Router + TypeScript) dan dataset kost hasil
 scrape Google Maps untuk kebutuhan eksplorasi data.
 
+## Status deployment
+
+| Item | Nilai |
+|---|---|
+| Produksi | <https://havenakost.vercel.app> |
+| Health check | <https://havenakost.vercel.app/api/health> |
+| Repository | <https://github.com/xDzaky/havenakost> |
+| Database | Neon PostgreSQL + PostGIS (3 migrasi applied) |
+| Storage / anti-bot | Cloudflare R2 (bucket privat) + Turnstile |
+| Test suite | 27 test Vitest lulus; smoke test 12 cek; e2e demo 21 langkah |
+
+Panduan setup, deploy, dan testing lengkap: **[docs/panduan-lengkap.md](docs/panduan-lengkap.md)**.
+
 ## Backend API
 
 Stack: **Next.js 16 App Router, TypeScript strict, Neon PostgreSQL + PostGIS,
@@ -46,12 +59,30 @@ npm test
 npm run build
 ```
 
+Smoke test cepat ke API yang sedang berjalan (read-only):
+
+```bash
+./scripts/smoke-test.sh https://havenakost.vercel.app
+
+ADMIN_EMAIL=admin@havenakost.app ADMIN_PASSWORD='...' \
+  ./scripts/smoke-test.sh https://havenakost.vercel.app
+```
+
+E2E demo lengkap (owner → approval → listing → kamar → QR → publik) yang
+**menulis data**:
+
+```bash
+ADMIN_EMAIL=admin@havenakost.app ADMIN_PASSWORD='...' \
+  ./scripts/e2e-demo.sh https://havenakost.vercel.app
+```
+
 Test integration memakai `TEST_DATABASE_URL` dan **tidak** menyentuh database
 development/produksi. Token Turnstile `test-bypass` hanya aktif saat
 `NODE_ENV=test`.
 
 ### Dokumentasi backend
 
+- [**Panduan lengkap (setup, deploy, testing)**](docs/panduan-lengkap.md)
 - [Arsitektur backend](docs/backend-architecture.md)
 - [Skema database](docs/database-schema.md)
 - [Daftar endpoint API](docs/api-endpoints.md)
@@ -173,6 +204,8 @@ havenakost/
 │   ├── kost-malang-raw.csv
 │   └── kost-malang-raw.json
 ├── scripts/
+│   ├── smoke-test.sh           # smoke test read-only ke API berjalan
+│   ├── e2e-demo.sh             # E2E owner → listing → approve → publik
 │   ├── scrape_maps.py          # scraper (endpoint sama dengan repo gosom)
 │   ├── build_report.py         # bersihkan + buat CSV/GeoJSON/KML/MD/viewer
 │   └── run-scrape.sh           # jalankan binary repo gosom
