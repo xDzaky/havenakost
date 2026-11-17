@@ -17,7 +17,7 @@ async function main() {
   const client = postgres(url, {
     max: 1,
     prepare: false,
-    connect_timeout: 15,
+    connect_timeout: 45,
   });
 
   try {
