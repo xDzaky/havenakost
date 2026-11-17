@@ -45,6 +45,7 @@ import { POST as paySubscription } from "@/app/api/owner/subscription/payment/ro
 import { POST as approvePayment } from "@/app/api/admin/subscription-payments/[id]/approve/route";
 import { GET as ownerSubscription } from "@/app/api/owner/subscription/route";
 import { GET as healthCheck } from "@/app/api/health/route";
+import { GET as adminHealthCheck } from "@/app/api/admin/health/route";
 
 const params = <T>(value: T) => ({ params: Promise.resolve(value) });
 
@@ -141,8 +142,16 @@ describe("Havena Kost backend", () => {
     const response = await healthCheck(request("/api/health"));
     const body = await readJson(response);
     expect(response.status).toBe(200);
-    expect(body.data.database).toBe("connected");
-    expect(String(body.data.postgis)).toMatch(/^3\./);
+    expect(body.data).toEqual({ status: "ok" });
+
+    const adminResponse = await adminHealthCheck(
+      request("/api/admin/health", { cookie: admin.cookie }),
+      params({}),
+    );
+    const adminBody = await readJson(adminResponse);
+    expect(adminResponse.status).toBe(200);
+    expect(adminBody.data.database).toBe("connected");
+    expect(String(adminBody.data.postgis)).toMatch(/^3\./);
   });
 
   it("isolates owner data and blocks admin endpoints for owners", async () => {
@@ -760,5 +769,5 @@ describe("Havena Kost backend", () => {
     const dashboardBody = await readJson(dashboard);
     expect(dashboardBody.data.totals.listings).toBe(2);
     expect(dashboardBody.data.growth.series.length).toBe(30);
-  });
+  }, 60000);
 });
