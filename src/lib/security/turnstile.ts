@@ -1,4 +1,4 @@
-import { env, isTest } from "@/lib/env";
+import { env, isProduction, isTest } from "@/lib/env";
 import { AppError } from "@/lib/utils/api-error";
 
 const SITEVERIFY_URL =
@@ -22,6 +22,7 @@ type TurnstileResponse = {
 export async function verifyTurnstile(
   token: string,
   remoteIp?: string,
+  expectedAction?: string,
 ): Promise<void> {
   if (isTest && token === "test-bypass") return;
 
@@ -72,6 +73,36 @@ export async function verifyTurnstile(
       422,
       null,
       "TURNSTILE_FAILED",
+    );
+  }
+
+  if (result.hostname) {
+    let allowedHostnames: string[] = [];
+    try {
+      allowedHostnames.push(new URL(env.APP_BASE_URL).hostname);
+    } catch {
+      // ignore parse failure
+    }
+    if (!isProduction) {
+      allowedHostnames.push("localhost", "127.0.0.1");
+    }
+
+    if (!allowedHostnames.includes(result.hostname)) {
+      throw new AppError(
+        "Verifikasi keamanan gagal: domain tidak sesuai.",
+        422,
+        null,
+        "TURNSTILE_HOSTNAME_MISMATCH",
+      );
+    }
+  }
+
+  if (expectedAction && result.action && result.action !== expectedAction) {
+    throw new AppError(
+      "Verifikasi keamanan gagal: aksi tidak sesuai.",
+      422,
+      null,
+      "TURNSTILE_ACTION_MISMATCH",
     );
   }
 }

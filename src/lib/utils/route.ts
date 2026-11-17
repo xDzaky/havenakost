@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import type { ZodType } from "zod";
 import { handleApiError } from "./api-response";
 import { AppError } from "./api-error";
-import { env } from "@/lib/env";
+import { env, isProduction } from "@/lib/env";
 
 export type RouteContext<TParams> = { params: Promise<TParams> };
 
@@ -15,8 +15,9 @@ export function verifyCsrfOrigin(request: NextRequest) {
         request.nextUrl.origin,
         env.APP_BASE_URL?.replace(/\/+$/, ""),
         env.BETTER_AUTH_URL?.replace(/\/+$/, ""),
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
+        ...(isProduction
+          ? []
+          : ["http://localhost:3000", "http://127.0.0.1:3000"]),
       ].filter(Boolean);
       if (!allowedOrigins.includes(origin)) {
         throw new AppError("Origin request tidak diizinkan (CSRF)", 403);
@@ -99,10 +100,15 @@ export function parseQuery<T>(
 }
 
 export function getClientIp(request: NextRequest): string {
+  const isVercel = Boolean(process.env.VERCEL);
   const vercelForwarded = request.headers.get("x-vercel-forwarded-for");
   if (vercelForwarded) {
     return vercelForwarded.split(",")[0]?.trim() || "unknown";
   }
+  if (isVercel) {
+    return "unknown";
+  }
+
   const cfConnecting = request.headers.get("cf-connecting-ip");
   if (cfConnecting) {
     return cfConnecting.trim();
