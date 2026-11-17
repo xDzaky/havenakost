@@ -31,7 +31,7 @@ export const GET = apiRoute(async (request) => {
 
   const headers = new Headers({
     "Content-Type": object.ContentType ?? "application/octet-stream",
-    "Cache-Control": "public, max-age=3600, s-maxage=600, stale-while-revalidate=60",
+    "Cache-Control": "public, max-age=600, s-maxage=600, stale-while-revalidate=60",
     "X-Content-Type-Options": "nosniff",
   });
   if (object.ContentLength !== undefined) {
