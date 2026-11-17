@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   facilities,
@@ -470,48 +470,59 @@ async function replaceFacilities(
   );
 }
 
+export const FREE_MAX_LISTINGS = 1;
+
 export async function createOwnerListing(
   ownerId: string,
   input: KostCreateInput,
 ) {
-  const [activeSub] = await db
-    .select({
-      subscription: ownerSubscriptions,
-      plan: subscriptionPlans,
-    })
-    .from(ownerSubscriptions)
-    .innerJoin(
-      subscriptionPlans,
-      eq(ownerSubscriptions.planId, subscriptionPlans.id),
-    )
-    .where(
-      and(
-        eq(ownerSubscriptions.ownerId, ownerId),
-        eq(ownerSubscriptions.status, "active"),
-      ),
-    )
-    .limit(1);
-
-  if (activeSub && activeSub.plan.maxListings !== null) {
-    const [existingCount] = await db
-      .select({ count: sql<number>`COUNT(*)::int` })
-      .from(kostListings)
-      .where(
-        and(
-          eq(kostListings.ownerId, ownerId),
-          isNull(kostListings.deletedAt),
-        ),
-      );
-    if ((existingCount?.count ?? 0) >= activeSub.plan.maxListings) {
-      throw new ForbiddenError(
-        `Batas kuota listing paket Anda (${activeSub.plan.maxListings}) telah tercapai. Tingkatkan paket langganan untuk menambah listing.`,
-      );
-    }
-  }
-
   const slug = await uniqueSlug(input.name);
 
   const created = await db.transaction(async (tx) => {
+    // Transaction-level advisory lock per owner to prevent race conditions during concurrent creates
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${ownerId}))`);
+
+    const [activeSub] = await tx
+      .select({
+        subscription: ownerSubscriptions,
+        plan: subscriptionPlans,
+      })
+      .from(ownerSubscriptions)
+      .innerJoin(
+        subscriptionPlans,
+        eq(ownerSubscriptions.planId, subscriptionPlans.id),
+      )
+      .where(
+        and(
+          eq(ownerSubscriptions.ownerId, ownerId),
+          eq(ownerSubscriptions.status, "active"),
+        ),
+      )
+      .limit(1);
+
+    // If no active subscription, enforce default free tier quota (FREE_MAX_LISTINGS = 1)
+    const maxListings = activeSub?.plan.maxListings ?? FREE_MAX_LISTINGS;
+
+    if (maxListings !== null) {
+      // Archived listings are explicitly excluded from quota consumption
+      const [existingCount] = await tx
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(kostListings)
+        .where(
+          and(
+            eq(kostListings.ownerId, ownerId),
+            isNull(kostListings.deletedAt),
+            ne(kostListings.status, "archived"),
+          ),
+        );
+
+      if ((existingCount?.count ?? 0) >= maxListings) {
+        throw new ForbiddenError(
+          `Batas kuota listing paket Anda (${maxListings}) telah tercapai. Tingkatkan paket langganan untuk menambah listing.`,
+        );
+      }
+    }
+
     const [listing] = await tx
       .insert(kostListings)
       .values({
