@@ -24,14 +24,16 @@ export const auth = betterAuth({
     maxPasswordLength: 128,
     autoSignIn: true,
     requireEmailVerification: true,
-    async sendResetPassword(data) {
+    async sendResetPassword(data: { user: { email: string; name: string }; url: string; token: string }) {
       await sendEmail({
         to: data.user.email,
         subject: "Reset Kata Sandi - Havena Kost",
         html: `<p>Halo ${data.user.name},</p><p>Anda meminta pengaturan ulang kata sandi. Silakan klik tautan di bawah ini:</p><p><a href="${data.url}">${data.url}</a></p><p>Abaikan email ini jika Anda tidak meminta reset kata sandi.</p>`,
       });
     },
-    async sendVerificationEmail(data) {
+  },
+  emailVerification: {
+    async sendVerificationEmail(data: { user: { email: string; name: string }; url: string; token: string }) {
       await sendEmail({
         to: data.user.email,
         subject: "Verifikasi Alamat Email - Havena Kost",

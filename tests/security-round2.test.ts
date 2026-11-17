@@ -5,9 +5,17 @@ import { POST as createListing } from "@/app/api/owner/listings/route";
 import { POST as confirmPhoto } from "@/app/api/owner/listings/[id]/photos/confirm/route";
 import { POST as overrideOwnerReject } from "@/app/api/admin/reviews/[id]/override-owner-reject/route";
 import { POST as authPost } from "@/app/api/auth/[...all]/route";
+import { POST as reportReview } from "@/app/api/public/reviews/[reviewId]/report/route";
+import { POST as replyReview } from "@/app/api/owner/reviews/[reviewId]/reply/route";
+import { GET as publicReviews } from "@/app/api/public/kost/[slug]/reviews/route";
+import { GET as publicHealth } from "@/app/api/health/route";
+import { GET as adminHealth } from "@/app/api/admin/health/route";
 import * as emailService from "@/lib/services/email.service";
+import * as turnstile from "@/lib/security/turnstile";
+import { verifyTurnstile } from "@/lib/security/turnstile";
+import { verifyCsrfOrigin, getClientIp } from "@/lib/utils/route";
 import { db } from "@/lib/db";
-import { reviews, kostRooms, user } from "@/lib/db/schema";
+import { reviews, kostRooms, user, reviewReports, kostListings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import * as r2 from "@/lib/storage/r2";
 import { MAX_PHOTOS_PER_LISTING } from "@/lib/services/photo.service";
@@ -432,5 +440,362 @@ describe("P2: Auth security, login rate limiting, and email verification", () =>
     const body = await readJson(res);
     const msg = JSON.stringify(body).toLowerCase();
     expect(msg).toMatch(/verif/);
+  });
+});
+
+describe("P6: Review reporting, deduplication, and owner replies", () => {
+  async function createPublishedReview(ownerId: string, kostId: string) {
+    const [room] = await db
+      .insert(kostRooms)
+      .values({ kostId, roomCode: `P6-${Date.now()}`, monthlyPrice: "1500000" })
+      .returning();
+
+    const [review] = await db
+      .insert(reviews)
+      .values({
+        kostId,
+        roomId: room!.id,
+        reviewerName: "Penyewa Asli",
+        claimedCheckInDate: "2025-01-01",
+        rating: 5,
+        comment: "Kost sangat bersih dan nyaman sekali.",
+        publicationStatus: "published",
+        verificationStatus: "verified",
+      })
+      .returning();
+
+    return review!;
+  }
+
+  it("report tanpa Turnstile ditolak 422", async () => {
+    const owner = await createTestUser("owner", "p6-report-no-turnstile");
+    const listRes = await createListing(
+      request("/api/owner/listings", {
+        method: "POST",
+        cookie: owner.cookie,
+        body: {
+          name: "Kost Report P6",
+          description: "Deskripsi kost pengujian kuota listing minimal dua puluh karakter.",
+          address: "Jl. Test No. 1",
+          province: "Jawa Timur",
+          city: "Kota Malang",
+          district: "Lowokwaru",
+          subdistrict: "Ketawanggede",
+          postal_code: "65145",
+          latitude: -7.952,
+          longitude: 112.614,
+          gender_policy: "mixed" as const,
+          price_min: 1500000,
+          price_max: 2000000,
+          contact_phone: "6281234567890",
+        },
+      }),
+    );
+    expect(listRes.status).toBe(201);
+    const listBody = await readJson(listRes);
+    const kostId = listBody.data.id;
+    const review = await createPublishedReview(owner.id, kostId);
+
+    // Report without turnstile_token - schema requires it now
+    const res = await reportReview(
+      request(`/api/public/reviews/${review.id}/report`, {
+        method: "POST",
+        body: { reason: "Konten spam tidak pantas" },
+      }),
+      { params: Promise.resolve({ reviewId: review.id }) },
+    );
+    expect(res.status).toBe(422);
+  });
+
+  it("laporan ganda dari IP sama tidak menambah hitungan (dedup)", async () => {
+    const owner = await createTestUser("owner", "p6-dedup");
+    const listRes = await createListing(
+      request("/api/owner/listings", {
+        method: "POST",
+        cookie: owner.cookie,
+        body: {
+          name: "Kost Dedup P6",
+          description: "Deskripsi kost pengujian kuota listing minimal dua puluh karakter.",
+          address: "Jl. Test No. 2",
+          province: "Jawa Timur",
+          city: "Kota Malang",
+          district: "Lowokwaru",
+          subdistrict: "Ketawanggede",
+          postal_code: "65145",
+          latitude: -7.952,
+          longitude: 112.614,
+          gender_policy: "mixed" as const,
+          price_min: 1500000,
+          price_max: 2000000,
+          contact_phone: "6281234567890",
+        },
+      }),
+    );
+    const listBody = await readJson(listRes);
+    const kostId = listBody.data.id;
+    const review = await createPublishedReview(owner.id, kostId);
+
+    // Mock turnstile to bypass network
+    const turnstileSpy = vi.spyOn(await import("@/lib/security/turnstile"), "verifyTurnstile").mockResolvedValue(undefined);
+
+    const ip = "203.0.113.5";
+
+    // First report
+    await reportReview(
+      request(`/api/public/reviews/${review.id}/report`, {
+        method: "POST",
+        headers: { "x-forwarded-for": ip },
+        body: { reason: "Konten spam tidak pantas", turnstile_token: "test-bypass" },
+      }),
+      { params: Promise.resolve({ reviewId: review.id }) },
+    );
+
+    // Second report from same IP
+    await reportReview(
+      request(`/api/public/reviews/${review.id}/report`, {
+        method: "POST",
+        headers: { "x-forwarded-for": ip },
+        body: { reason: "Konten spam tidak pantas", turnstile_token: "test-bypass" },
+      }),
+      { params: Promise.resolve({ reviewId: review.id }) },
+    );
+
+    // Check only 1 report in DB for this review+ip
+    const [row] = await db
+      .select()
+      .from(reviewReports)
+      .where(eq(reviewReports.reviewId, review.id));
+
+    expect(row).toBeTruthy();
+
+    // Count total rows
+    const allReports = await db
+      .select()
+      .from(reviewReports)
+      .where(eq(reviewReports.reviewId, review.id));
+
+    expect(allReports.length).toBe(1);
+
+    turnstileSpy.mockRestore();
+  });
+
+  it("review pending tidak bisa dilaporkan - mendapat 202 generik", async () => {
+    const owner = await createTestUser("owner", "p6-pending-report");
+    const listRes = await createListing(
+      request("/api/owner/listings", {
+        method: "POST",
+        cookie: owner.cookie,
+        body: {
+          name: "Kost Pending P6",
+          description: "Deskripsi kost pengujian kuota listing minimal dua puluh karakter.",
+          address: "Jl. Test No. 3",
+          province: "Jawa Timur",
+          city: "Kota Malang",
+          district: "Lowokwaru",
+          subdistrict: "Ketawanggede",
+          postal_code: "65145",
+          latitude: -7.952,
+          longitude: 112.614,
+          gender_policy: "mixed" as const,
+          price_min: 1500000,
+          price_max: 2000000,
+          contact_phone: "6281234567890",
+        },
+      }),
+    );
+    const listBody = await readJson(listRes);
+    const kostId = listBody.data.id;
+
+    const [room] = await db
+      .insert(kostRooms)
+      .values({ kostId, roomCode: `PENDING-${Date.now()}`, monthlyPrice: "1500000" })
+      .returning();
+
+    const [pendingReview] = await db
+      .insert(reviews)
+      .values({
+        kostId,
+        roomId: room!.id,
+        reviewerName: "Penyewa Test",
+        claimedCheckInDate: "2025-01-01",
+        rating: 4,
+        comment: "Kost lumayan bagus dan bersih.",
+        publicationStatus: "pending",
+        verificationStatus: "unmatched",
+      })
+      .returning();
+
+    const turnstileSpy = vi.spyOn(await import("@/lib/security/turnstile"), "verifyTurnstile").mockResolvedValue(undefined);
+
+    // Reporting a pending review should return 202 without revealing anything
+    const res = await reportReview(
+      request(`/api/public/reviews/${pendingReview!.id}/report`, {
+        method: "POST",
+        body: { reason: "Konten spam tidak pantas", turnstile_token: "test-bypass" },
+      }),
+      { params: Promise.resolve({ reviewId: pendingReview!.id }) },
+    );
+    expect(res.status).toBe(202);
+
+    // Verify the pending review was NOT flagged
+    const [updatedReview] = await db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.id, pendingReview!.id));
+    expect(updatedReview?.isFlagged).toBe(false);
+
+    turnstileSpy.mockRestore();
+  });
+
+  it("balasan owner muncul di respons publik", async () => {
+    const owner = await createTestUser("owner", "p6-reply");
+    const listRes = await createListing(
+      request("/api/owner/listings", {
+        method: "POST",
+        cookie: owner.cookie,
+        body: {
+          name: "Kost Reply P6",
+          description: "Deskripsi kost pengujian kuota listing minimal dua puluh karakter.",
+          address: "Jl. Test No. 4",
+          province: "Jawa Timur",
+          city: "Kota Malang",
+          district: "Lowokwaru",
+          subdistrict: "Ketawanggede",
+          postal_code: "65145",
+          latitude: -7.952,
+          longitude: 112.614,
+          gender_policy: "mixed" as const,
+          price_min: 1500000,
+          price_max: 2000000,
+          contact_phone: "6281234567890",
+        },
+      }),
+    );
+    expect(listRes.status).toBe(201);
+    const listBody = await readJson(listRes);
+    const kostId = listBody.data.id;
+    const slug = listBody.data.slug;
+
+    // Publish the listing by updating status directly
+    await db
+      .update(kostListings)
+      .set({ status: "published" })
+      .where(eq(kostListings.id, kostId));
+
+    const review = await createPublishedReview(owner.id, kostId);
+
+    // Owner replies
+    const replyRes = await replyReview(
+      request(`/api/owner/reviews/${review.id}/reply`, {
+        method: "POST",
+        cookie: owner.cookie,
+        body: { reply: "Terima kasih atas ulasan positifnya! Kami akan terus meningkatkan pelayanan." },
+      }),
+      { params: Promise.resolve({ reviewId: review.id }) },
+    );
+    expect(replyRes.status).toBe(200);
+
+    // Check public review shows ownerReply
+    const pubRes = await publicReviews(
+      request(`/api/public/kost/${slug}/reviews`),
+      { params: Promise.resolve({ slug }) },
+    );
+    expect(pubRes.status).toBe(200);
+    const pubBody = await readJson(pubRes);
+    const reviewItem = pubBody.data.find((r: any) => r.id === review.id);
+    expect(reviewItem).toBeTruthy();
+    expect(reviewItem.ownerReply).toContain("Terima kasih");
+    expect(reviewItem.ownerRepliedAt).toBeTruthy();
+  });
+});
+
+describe("P7: Hardening, Turnstile validation, health split, and IP resolution", () => {
+  it("L-5: verifyTurnstile menolak hostname tidak sah atau action tidak sesuai", async () => {
+    // 1. Hostname mismatch
+    const evilFetch = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true, hostname: "attacker-site.com" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(verifyTurnstile("real-token-test-hostname")).rejects.toThrow(
+      /domain tidak sesuai/i,
+    );
+    evilFetch.mockRestore();
+
+    // 2. Action mismatch
+    const actionFetch = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: true,
+          hostname: "localhost",
+          action: "wrong-action",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(
+      verifyTurnstile("real-token-test-action", undefined, "review-report"),
+    ).rejects.toThrow(/aksi tidak sesuai/i);
+    actionFetch.mockRestore();
+  });
+
+  it("L-6: /api/health publik hanya mengembalikan { status: 'ok' }, info DB ada di /api/admin/health", async () => {
+    const admin = await createTestUser("admin", "p7-admin");
+    const owner = await createTestUser("owner", "p7-owner");
+
+    // Public health endpoint
+    const pubRes = await publicHealth(request("/api/health"));
+    expect(pubRes.status).toBe(200);
+    const pubBody = await readJson(pubRes);
+    expect(pubBody.data).toEqual({ status: "ok" });
+    expect(pubBody.data.database).toBeUndefined();
+    expect(pubBody.data.postgis).toBeUndefined();
+
+    // Admin health endpoint - forbidden for non-admin
+    const nonAdminRes = await adminHealth(
+      request("/api/admin/health", { cookie: owner.cookie }),
+      { params: Promise.resolve({}) },
+    );
+    expect(nonAdminRes.status).toBe(403);
+
+    // Admin health endpoint - accessible for admin
+    const adminRes = await adminHealth(
+      request("/api/admin/health", { cookie: admin.cookie }),
+      { params: Promise.resolve({}) },
+    );
+    expect(adminRes.status).toBe(200);
+    const adminBody = await readJson(adminRes);
+    expect(adminBody.data.database).toBe("connected");
+  });
+
+  it("getClientIp di Vercel mengembalikan unknown jika x-vercel-forwarded-for tidak ada", () => {
+    const oldVercel = process.env.VERCEL;
+    try {
+      process.env.VERCEL = "1";
+
+      // With only x-forwarded-for, on Vercel it must return unknown (prevent IP spoofing)
+      const spoofReq = request("/api/test", {
+        headers: { "x-forwarded-for": "1.2.3.4", "cf-connecting-ip": "5.6.7.8" },
+      });
+      expect(getClientIp(spoofReq)).toBe("unknown");
+
+      // With x-vercel-forwarded-for, it returns the real Vercel IP
+      const vercelReq = request("/api/test", {
+        headers: { "x-vercel-forwarded-for": "203.0.113.88, 10.0.0.1" },
+      });
+      expect(getClientIp(vercelReq)).toBe("203.0.113.88");
+    } finally {
+      if (oldVercel !== undefined) {
+        process.env.VERCEL = oldVercel;
+      } else {
+        delete process.env.VERCEL;
+      }
+    }
   });
 });

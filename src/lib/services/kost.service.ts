@@ -391,6 +391,8 @@ export async function getPublicReviews(
       roomId: reviews.roomId,
       roomCode: kostRooms.roomCode,
       roomName: kostRooms.roomName,
+      ownerReply: reviews.ownerReply,
+      ownerRepliedAt: reviews.ownerRepliedAt,
       createdAt: reviews.createdAt,
     })
     .from(reviews)
@@ -419,6 +421,8 @@ export async function getPublicReviews(
         roomCode: review.roomCode,
         roomName: review.roomName,
       },
+      ownerReply: review.ownerReply,
+      ownerRepliedAt: review.ownerRepliedAt,
       createdAt: review.createdAt,
     })),
     meta: paginationMeta(

@@ -1,5 +1,4 @@
 import { apiRoute, parseJson, getClientIp } from "@/lib/utils/route";
-import { jsonSuccess } from "@/lib/utils/api-response";
 import { uuidSchema } from "@/lib/validators/common.schema";
 import { reviewReportSchema } from "@/lib/validators/review.schema";
 import { reportPublicReview } from "@/lib/services/review.service";
@@ -11,6 +10,13 @@ export const POST = apiRoute<Params>(async (request, context) => {
   const body = await parseJson(request, reviewReportSchema);
   const result = await reportPublicReview(reviewId, body.reason, {
     ip: getClientIp(request),
+    turnstileToken: body.turnstile_token,
   });
-  return jsonSuccess(result);
+  return new Response(
+    JSON.stringify({ success: true, ...result }),
+    {
+      status: 202,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 });

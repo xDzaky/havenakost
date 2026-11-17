@@ -91,3 +91,22 @@ export const reviews = pgTable(
     ),
   ],
 );
+
+export const reviewReports = pgTable(
+  "review_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    ipHash: text("ip_hash").notNull(),
+    reason: text("reason").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("review_reports_review_id_idx").on(table.reviewId),
+    uniqueIndex("review_reports_review_ip_idx").on(table.reviewId, table.ipHash),
+  ],
+);

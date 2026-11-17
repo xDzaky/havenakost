@@ -15,6 +15,7 @@ import {
   notifications,
   roomOccupancies,
   reviews,
+  reviewReports,
   user,
 } from "@/lib/db/schema";
 import type { ReviewSubmitInput } from "@/lib/validators/review.schema";
@@ -108,7 +109,7 @@ export async function submitPublicReview(
   await enforceRateLimit({
     scope: "review-ip",
     identifier: context.ip,
-    limit: 20,
+    limit: 5,
     windowSeconds: 60 * 60,
   });
 
@@ -257,6 +258,8 @@ export async function listOwnerReviews(
       matchedOccupancyId: reviews.matchedOccupancyId,
       verifiedOccupancyId: reviews.verifiedOccupancyId,
       rejectionReason: reviews.rejectionReason,
+      ownerReply: reviews.ownerReply,
+      ownerRepliedAt: reviews.ownerRepliedAt,
       createdAt: reviews.createdAt,
     })
     .from(reviews)
@@ -600,6 +603,7 @@ export async function listAdminReviews(query: {
     | "rejected";
   kost_id?: string;
   q?: string;
+  is_flagged?: boolean;
 }) {
   const conditions = [];
   if (query.publication_status) {
@@ -616,6 +620,9 @@ export async function listAdminReviews(query: {
       sql`(${reviews.reviewerName} ILIKE ${`%${query.q}%`} OR ${reviews.comment} ILIKE ${`%${query.q}%`})`,
     );
   }
+  if (query.is_flagged === true) {
+    conditions.push(eq(reviews.isFlagged, true));
+  }
   const where = conditions.length > 0 ? and(...conditions)! : undefined;
 
   const items = await db
@@ -629,6 +636,8 @@ export async function listAdminReviews(query: {
       comment: reviews.comment,
       verificationStatus: reviews.verificationStatus,
       publicationStatus: reviews.publicationStatus,
+      isFlagged: reviews.isFlagged,
+      flagReason: reviews.flagReason,
       createdAt: reviews.createdAt,
     })
     .from(reviews)
@@ -919,8 +928,12 @@ export async function overrideOwnerRejectReview(
 export async function reportPublicReview(
   reviewId: string,
   reason: string,
-  context: { ip: string },
+  context: { ip: string; turnstileToken: string },
 ) {
+  // 1. Verify Turnstile
+  await verifyTurnstile(context.turnstileToken, context.ip);
+
+  // 2. Rate limit per IP
   await enforceRateLimit({
     scope: "review-report",
     identifier: context.ip,
@@ -928,24 +941,54 @@ export async function reportPublicReview(
     windowSeconds: 3600,
   });
 
+  // 3. Check review exists and is published
   const [row] = await db
-    .select({ id: reviews.id, isFlagged: reviews.isFlagged })
+    .select({
+      id: reviews.id,
+      publicationStatus: reviews.publicationStatus,
+      isFlagged: reviews.isFlagged,
+    })
     .from(reviews)
     .where(eq(reviews.id, reviewId))
     .limit(1);
 
-  if (!row) throw new NotFoundError("Review tidak ditemukan");
+  // Return generic 202 for non-existent or non-published reviews (don't reveal existence)
+  if (!row || row.publicationStatus !== "published") {
+    return { message: "Laporan diterima." };
+  }
 
+  const ipHash = hashIdentifier(context.ip);
+
+  // 4. Deduplicate: insert or ignore based on (review_id, ip_hash) unique constraint
   await db
-    .update(reviews)
-    .set({
-      isFlagged: true,
-      flagReason: reason,
-      updatedAt: new Date(),
+    .insert(reviewReports)
+    .values({
+      reviewId,
+      ipHash,
+      reason,
     })
-    .where(eq(reviews.id, reviewId));
+    .onConflictDoNothing();
 
-  return { message: "Laporan review diterima dan akan ditinjau admin." };
+  // 5. Count total reports and update flag
+  const [countRow] = await db
+    .select({ count: sql<number>`COUNT(*)::int` })
+    .from(reviewReports)
+    .where(eq(reviewReports.reviewId, reviewId));
+
+  const reportCount = countRow?.count ?? 0;
+
+  if (reportCount > 0) {
+    await db
+      .update(reviews)
+      .set({
+        isFlagged: true,
+        flagReason: reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(reviews.id, reviewId));
+  }
+
+  return { message: "Laporan diterima." };
 }
 
 export async function replyOwnerReview(
@@ -971,6 +1014,14 @@ export async function replyOwnerReview(
     throw new ForbiddenError(
       "Hanya review yang sudah dipublikasikan yang dapat dibalas.",
     );
+  }
+
+  // Validate reply content - no links, no phone numbers
+  if (/(https?:\/\/|www\.)[^\s]+/i.test(replyText)) {
+    throw new AppError("Balasan tidak boleh mengandung tautan/link", 422);
+  }
+  if (/(?:\+?62|08)[0-9]{8,13}/.test(replyText.replace(/[\s-]/g, ""))) {
+    throw new AppError("Balasan tidak boleh mengandung nomor telepon", 422);
   }
 
   const [updated] = await db

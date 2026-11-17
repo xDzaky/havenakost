@@ -77,13 +77,25 @@ export const reviewRejectSchema = z
 export const reviewReportSchema = z
   .object({
     reason: z.string().trim().min(5).max(500),
-    turnstile_token: z.string().trim().min(1).max(4_096).optional(),
+    turnstile_token: z.string().trim().min(1).max(4_096),
   })
   .strict();
 
 export const reviewReplySchema = z
   .object({
-    reply: z.string().trim().min(5).max(1_000),
+    reply: z
+      .string()
+      .trim()
+      .min(5)
+      .max(1_000)
+      .refine(
+        (val) => !/(https?:\/\/|www\.)[^\s]+/i.test(val),
+        "Balasan tidak boleh mengandung tautan/link",
+      )
+      .refine(
+        (val) => !/(?:\+?62|08)[0-9]{8,13}/.test(val.replace(/[\s-]/g, "")),
+        "Balasan tidak boleh mengandung nomor telepon",
+      ),
   })
   .strict();
 
@@ -115,6 +127,12 @@ export const adminReviewQuerySchema = paginationSchema.extend({
     .optional(),
   kost_id: uuidSchema.optional(),
   q: z.string().trim().max(100).optional(),
+  is_flagged: z
+    .preprocess(
+      (val) => (val === "true" ? true : val === "false" ? false : val),
+      z.boolean(),
+    )
+    .optional(),
 });
 
 export const publicReviewQuerySchema = paginationSchema.extend({
