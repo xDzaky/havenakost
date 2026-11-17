@@ -42,6 +42,12 @@ export async function createTestUser(
 
   if (!created) throw new Error("Gagal membuat test user");
 
+  // In test helper, ensure emailVerified is true so test user can sign in
+  await db
+    .update(user)
+    .set({ emailVerified: true })
+    .where(eq(user.id, created.id));
+
   if (role === "admin") {
     await db
       .update(user)

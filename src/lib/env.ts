@@ -21,6 +21,9 @@ const envSchema = z.object({
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().optional(),
   TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
 
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(1).optional(),
+
   REVIEW_RATE_LIMIT_HMAC_SECRET: z.string().min(16).optional(),
   ADMIN_BOOTSTRAP_EMAIL: z.string().email().optional(),
   ADMIN_BOOTSTRAP_PASSWORD: z.string().min(8).optional(),
@@ -40,6 +43,14 @@ export const env = result.data;
 
 export const isProduction = env.NODE_ENV === "production";
 export const isTest = env.NODE_ENV === "test";
+
+if (isProduction && process.env.NEXT_PHASE !== "phase-production-build") {
+  if (!env.RESEND_API_KEY) {
+    throw new Error(
+      "Konfigurasi environment tidak valid: RESEND_API_KEY wajib diset pada lingkungan produksi untuk reset password dan verifikasi email",
+    );
+  }
+}
 
 export function requireR2Config() {
   const required = {

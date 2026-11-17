@@ -16,7 +16,9 @@ export function request(
   if (options.body !== undefined) {
     headers.set("content-type", "application/json");
   }
-  headers.set("x-forwarded-for", "127.0.0.1");
+  if (!headers.has("x-forwarded-for")) {
+    headers.set("x-forwarded-for", "127.0.0.1");
+  }
 
   return new NextRequest(`${BASE_URL}${path}`, {
     method: options.method ?? "GET",

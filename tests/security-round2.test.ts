@@ -4,8 +4,10 @@ import { readJson, request } from "./helpers/http";
 import { POST as createListing } from "@/app/api/owner/listings/route";
 import { POST as confirmPhoto } from "@/app/api/owner/listings/[id]/photos/confirm/route";
 import { POST as overrideOwnerReject } from "@/app/api/admin/reviews/[id]/override-owner-reject/route";
+import { POST as authPost } from "@/app/api/auth/[...all]/route";
+import * as emailService from "@/lib/services/email.service";
 import { db } from "@/lib/db";
-import { reviews, kostRooms } from "@/lib/db/schema";
+import { reviews, kostRooms, user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import * as r2 from "@/lib/storage/r2";
 import { MAX_PHOTOS_PER_LISTING } from "@/lib/services/photo.service";
@@ -239,5 +241,196 @@ describe("P5: Admin override review owner rejection", () => {
       .where(eq(reviews.id, pendingReview!.id));
     expect(updatedRow?.publicationStatus).toBe("published");
     expect(updatedRow?.moderatedBy).toBe(admin.id);
+  });
+});
+
+describe("P2: Auth security, login rate limiting, and email verification", () => {
+  it("8 login gagal mengunci percobaan ke-9 dengan 429 dan Retry-After", async () => {
+    const testUser = await createTestUser("owner", "ratelimit-target");
+    const ip = "198.51.100.1";
+
+    // 8 failed login attempts
+    for (let i = 0; i < 8; i++) {
+      const res = await authPost(
+        request("/api/auth/sign-in/email", {
+          method: "POST",
+          headers: { "x-forwarded-for": ip },
+          body: {
+            email: testUser.email,
+            password: "WrongPassword123!",
+          },
+        }),
+      );
+      expect(res.status).toBe(401);
+    }
+
+    // 9th attempt must be rejected with 429 Too Many Requests
+    const res9 = await authPost(
+      request("/api/auth/sign-in/email", {
+        method: "POST",
+        headers: { "x-forwarded-for": ip },
+        body: {
+          email: testUser.email,
+          password: "WrongPassword123!",
+        },
+      }),
+    );
+    expect(res9.status).toBe(429);
+    expect(res9.headers.get("retry-after")).toBeTruthy();
+  });
+
+  it("login sukses tidak menambah hitungan gagal dan mereset hitungan", async () => {
+    const testUser = await createTestUser("owner", "success-reset");
+    const ip = "198.51.100.2";
+
+    // 4 failed attempts
+    for (let i = 0; i < 4; i++) {
+      const res = await authPost(
+        request("/api/auth/sign-in/email", {
+          method: "POST",
+          headers: { "x-forwarded-for": ip },
+          body: {
+            email: testUser.email,
+            password: "WrongPassword123!",
+          },
+        }),
+      );
+      expect(res.status).toBe(401);
+    }
+
+    // 1 successful login resets counter
+    const successRes = await authPost(
+      request("/api/auth/sign-in/email", {
+        method: "POST",
+        headers: { "x-forwarded-for": ip },
+        body: {
+          email: testUser.email,
+          password: testUser.password,
+        },
+      }),
+    );
+    expect(successRes.status).toBe(200);
+
+    // Can still attempt 4 more times without hitting 8 limit
+    for (let i = 0; i < 4; i++) {
+      const res = await authPost(
+        request("/api/auth/sign-in/email", {
+          method: "POST",
+          headers: { "x-forwarded-for": ip },
+          body: {
+            email: testUser.email,
+            password: "WrongPassword123!",
+          },
+        }),
+      );
+      expect(res.status).toBe(401);
+    }
+  });
+
+  it("email lain atau IP berbeda tidak terkunci", async () => {
+    const victim = await createTestUser("owner", "victim-acct");
+    const innocent = await createTestUser("owner", "innocent-acct");
+    const badIp = "198.51.100.10";
+    const goodIp = "198.51.100.20";
+
+    // Exhaust victim on badIp
+    for (let i = 0; i < 8; i++) {
+      await authPost(
+        request("/api/auth/sign-in/email", {
+          method: "POST",
+          headers: { "x-forwarded-for": badIp },
+          body: {
+            email: victim.email,
+            password: "WrongPassword123!",
+          },
+        }),
+      );
+    }
+
+    // Victim on badIp is locked
+    const victimBadRes = await authPost(
+      request("/api/auth/sign-in/email", {
+        method: "POST",
+        headers: { "x-forwarded-for": badIp },
+        body: {
+          email: victim.email,
+          password: "WrongPassword123!",
+        },
+      }),
+    );
+    expect(victimBadRes.status).toBe(429);
+
+    // Innocent on same badIp is NOT locked
+    const innocentRes = await authPost(
+      request("/api/auth/sign-in/email", {
+        method: "POST",
+        headers: { "x-forwarded-for": badIp },
+        body: {
+          email: innocent.email,
+          password: innocent.password,
+        },
+      }),
+    );
+    expect(innocentRes.status).toBe(200);
+
+    // Victim on different goodIp is NOT locked by the IP-email limit
+    const victimGoodRes = await authPost(
+      request("/api/auth/sign-in/email", {
+        method: "POST",
+        headers: { "x-forwarded-for": goodIp },
+        body: {
+          email: victim.email,
+          password: victim.password,
+        },
+      }),
+    );
+    expect(victimGoodRes.status).toBe(200);
+  });
+
+  it("reset password mengirim email (mock sendEmail)", async () => {
+    const testUser = await createTestUser("owner", "reset-pwd");
+    const sendEmailSpy = vi.spyOn(emailService, "sendEmail").mockResolvedValue(undefined);
+
+    const res = await authPost(
+      request("/api/auth/request-password-reset", {
+        method: "POST",
+        body: {
+          email: testUser.email,
+          redirectTo: "http://localhost:3000/reset-password",
+        },
+      }),
+    );
+    expect([200, 204]).toContain(res.status);
+    expect(sendEmailSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: testUser.email,
+        subject: expect.stringContaining("Reset Kata Sandi"),
+      }),
+    );
+  });
+
+  it("login tanpa email terverifikasi ditolak saat requireEmailVerification: true", async () => {
+    const testUser = await createTestUser("owner", "unverified-login");
+
+    // Manually mark unverified
+    await db
+      .update(user)
+      .set({ emailVerified: false })
+      .where(eq(user.id, testUser.id));
+
+    const res = await authPost(
+      request("/api/auth/sign-in/email", {
+        method: "POST",
+        body: {
+          email: testUser.email,
+          password: testUser.password,
+        },
+      }),
+    );
+    // Better Auth rejects unverified emails with 403 or 400
+    expect([400, 403]).toContain(res.status);
+    const body = await readJson(res);
+    const msg = JSON.stringify(body).toLowerCase();
+    expect(msg).toMatch(/verif/);
   });
 });

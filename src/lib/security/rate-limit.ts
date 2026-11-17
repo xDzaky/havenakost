@@ -82,3 +82,46 @@ export async function enforceRateLimit(options: {
     `.catch(() => undefined);
   }
 }
+
+/**
+ * Check if the rate limit bucket has reached or exceeded its limit without incrementing.
+ * Throws AppError 429 with retry_after_seconds if limit is reached.
+ */
+export async function checkRateLimit(options: {
+  scope: string;
+  identifier: string;
+  limit: number;
+}): Promise<void> {
+  const { scope, identifier, limit } = options;
+  const key = rateLimitKey(scope, identifier);
+
+  const rows = await sqlClient<{ count: number; expires_at: Date }[]>`
+    SELECT count, expires_at FROM rate_limit_buckets
+    WHERE key = ${key} AND expires_at > now()
+    LIMIT 1
+  `;
+  const bucket = rows[0];
+  if (bucket && bucket.count >= limit) {
+    const retryAfter = Math.max(
+      1,
+      Math.ceil((new Date(bucket.expires_at).getTime() - Date.now()) / 1000),
+    );
+    throw new AppError(
+      "Terlalu banyak percobaan gagal. Silakan coba lagi nanti.",
+      429,
+      { retry_after_seconds: retryAfter },
+      "RATE_LIMITED",
+    );
+  }
+}
+
+/**
+ * Reset / clear rate limit bucket for an identifier (e.g., after successful login).
+ */
+export async function resetRateLimit(
+  scope: string,
+  identifier: string,
+): Promise<void> {
+  const key = rateLimitKey(scope, identifier);
+  await sqlClient`DELETE FROM rate_limit_buckets WHERE key = ${key}`;
+}
