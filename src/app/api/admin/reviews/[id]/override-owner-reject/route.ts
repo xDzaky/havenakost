@@ -7,10 +7,12 @@ import { overrideOwnerRejectReview } from "@/lib/services/review.service";
 
 type Params = { id: string };
 
-const overrideRejectSchema = z.object({
-  action: z.enum(["publish", "reject"]),
-  reason: z.string().min(10).max(500).optional(),
-});
+const overrideRejectSchema = z
+  .object({
+    action: z.enum(["publish", "reject"]),
+    reason: z.string().trim().min(10).max(500),
+  })
+  .strict();
 
 export const POST = adminRoute<Params>(async (request, context, user) => {
   const reviewId = uuidSchema.parse((await context.params).id);

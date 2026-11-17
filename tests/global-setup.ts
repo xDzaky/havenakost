@@ -14,7 +14,7 @@ export default async function globalSetup() {
   const client = postgres(url, {
     max: 1,
     prepare: false,
-    connect_timeout: 15,
+    connect_timeout: 45,
   });
   await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
   await client.end();

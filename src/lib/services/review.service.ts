@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  adminLogs,
   kostListings,
   kostRooms,
   notifications,
@@ -470,9 +471,20 @@ export async function verifyOwnerReview(
     const namesMatch = normReviewer === normTenant;
 
     if (!namesMatch) {
-      if (!overrideReason || overrideReason.trim().length < 5) {
+      const trimmedReason = overrideReason?.trim() ?? "";
+      if (trimmedReason.length < 15) {
         throw new AppError(
-          "Nama penghuni tidak cocok dengan nama pengulas. Wajib sertakan alasan override (minimal 5 karakter).",
+          "Nama penghuni tidak cocok dengan nama pengulas. Wajib sertakan alasan override (minimal 15 karakter).",
+          422,
+        );
+      }
+
+      const uniqueChars = new Set(
+        trimmedReason.toLowerCase().replace(/[\s\-_.,]/g, ""),
+      ).size;
+      if (uniqueChars <= 3) {
+        throw new AppError(
+          "Alasan override tidak valid atau terlalu generik. Berikan penjelasan yang spesifik (minimal 15 karakter).",
           422,
         );
       }
@@ -495,6 +507,22 @@ export async function verifyOwnerReview(
       .returning();
 
     if (!updated) throw new AppError("Gagal memverifikasi review", 500);
+
+    if (!namesMatch && overrideReason) {
+      await tx.insert(adminLogs).values({
+        adminId: ownerId,
+        action: "review.owner_name_override",
+        entityType: "review",
+        entityId: reviewId,
+        description: `Owner memverifikasi review dengan alasan override nama: ${overrideReason.trim()}`,
+        metadata: {
+          reviewerName: row.review.reviewerName,
+          tenantName: occupancy.tenantName,
+          overrideReason: overrideReason.trim(),
+        },
+      });
+    }
+
     return updated;
   });
 
@@ -809,39 +837,83 @@ export async function overrideOwnerRejectReview(
   adminId: string,
   reviewId: string,
   action: "publish" | "reject",
-  reason?: string,
+  reason: string,
 ) {
-  const [row] = await db
-    .select({ review: reviews, kost: kostListings })
-    .from(reviews)
-    .innerJoin(kostListings, eq(reviews.kostId, kostListings.id))
-    .where(eq(reviews.id, reviewId))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    await lockReview(tx, reviewId);
 
-  if (!row) throw new NotFoundError("Review tidak ditemukan");
+    const [row] = await tx
+      .select({ review: reviews, kost: kostListings })
+      .from(reviews)
+      .innerJoin(kostListings, eq(reviews.kostId, kostListings.id))
+      .where(eq(reviews.id, reviewId))
+      .limit(1);
 
-  const [updated] = await db
-    .update(reviews)
-    .set({
-      publicationStatus: action === "publish" ? "published" : "rejected",
-      verificationStatus: action === "publish" ? "verified" : "rejected",
-      moderatedBy: adminId,
-      moderatedAt: new Date(),
-      moderationReason: reason ?? `Admin override owner rejection: ${action}`,
-      updatedAt: new Date(),
-    })
-    .where(eq(reviews.id, reviewId))
-    .returning();
+    if (!row) throw new NotFoundError("Review tidak ditemukan");
 
-  await logAdmin(adminId, {
-    action: "review.override_owner_reject",
-    entityType: "review",
-    entityId: reviewId,
-    description: `Admin override penolakan owner menjadi ${action}`,
-    metadata: { reason },
+    if (row.review.publicationStatus !== "owner_rejected") {
+      throw new ConflictError(
+        `Hanya review dengan status ditolak pemilik (owner_rejected) yang dapat di-override admin. Status saat ini: ${row.review.publicationStatus}`,
+      );
+    }
+
+    const beforeState = {
+      publicationStatus: row.review.publicationStatus,
+      verificationStatus: row.review.verificationStatus,
+      moderatedBy: row.review.moderatedBy,
+      moderatedAt: row.review.moderatedAt,
+    };
+
+    const newPublicationStatus =
+      action === "publish" ? "published" : "rejected";
+    const newVerificationStatus =
+      action === "publish" ? "verified" : "rejected";
+
+    const [updated] = await tx
+      .update(reviews)
+      .set({
+        publicationStatus: newPublicationStatus,
+        verificationStatus: newVerificationStatus,
+        moderatedBy: adminId,
+        moderatedAt: new Date(),
+        moderationReason: reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(reviews.id, reviewId))
+      .returning();
+
+    await tx.insert(notifications).values({
+      recipientUserId: row.kost.ownerId,
+      type: "review_override",
+      title:
+        action === "publish"
+          ? "Review diterbitkan oleh admin"
+          : "Review ditolak oleh admin",
+      message: `Admin mengesampingkan penolakan ulasan untuk ${row.kost.name}: ${reason}`,
+      relatedEntityType: "review",
+      relatedEntityId: reviewId,
+    });
+
+    await logAdmin(
+      adminId,
+      {
+        action: "review.override_owner_reject",
+        entityType: "review",
+        entityId: reviewId,
+        description: `Admin override penolakan owner menjadi ${action}: ${reason}`,
+        metadata: { reason, action },
+        before: beforeState,
+        after: {
+          publicationStatus: newPublicationStatus,
+          verificationStatus: newVerificationStatus,
+          moderatedBy: adminId,
+        },
+      },
+      tx,
+    );
+
+    return updated;
   });
-
-  return updated;
 }
 
 export async function reportPublicReview(

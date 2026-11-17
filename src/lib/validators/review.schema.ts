@@ -63,7 +63,7 @@ export const ownerReviewQuerySchema = paginationSchema.extend({
 export const reviewVerifySchema = z
   .object({
     occupancy_id: uuidSchema.optional(),
-    override_reason: z.string().trim().min(5).max(500).optional(),
+    override_reason: z.string().trim().min(15).max(500).optional(),
   })
   .strict()
   .optional();

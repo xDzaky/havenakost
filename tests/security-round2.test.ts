@@ -3,6 +3,10 @@ import { createTestUser } from "./helpers/auth";
 import { readJson, request } from "./helpers/http";
 import { POST as createListing } from "@/app/api/owner/listings/route";
 import { POST as confirmPhoto } from "@/app/api/owner/listings/[id]/photos/confirm/route";
+import { POST as overrideOwnerReject } from "@/app/api/admin/reviews/[id]/override-owner-reject/route";
+import { db } from "@/lib/db";
+import { reviews, kostRooms } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import * as r2 from "@/lib/storage/r2";
 import { MAX_PHOTOS_PER_LISTING } from "@/lib/services/photo.service";
 
@@ -118,5 +122,122 @@ describe("P4: Photo limit race condition (M-5)", () => {
 
     expect(successCount).toBe(MAX_PHOTOS_PER_LISTING);
     expect(conflictCount).toBe(25 - MAX_PHOTOS_PER_LISTING);
+  });
+});
+
+describe("P5: Admin override review owner rejection", () => {
+  it("override pada review pending ditolak 409, tanpa alasan 422, field asing 422, non-admin 403", async () => {
+    const admin = await createTestUser("admin", "admin-p5");
+    const owner = await createTestUser("owner", "owner-p5");
+
+    const listingRes = await createListing(
+      request("/api/owner/listings", {
+        method: "POST",
+        cookie: owner.cookie,
+        body: sampleListing("Kost Review Override"),
+      }),
+    );
+    expect(listingRes.status).toBe(201);
+    const listingBody = await readJson(listingRes);
+    const kostId = listingBody.data.id;
+
+    // Create a physical room
+    const [room] = await db
+      .insert(kostRooms)
+      .values({
+        kostId,
+        roomCode: "A-101",
+        monthlyPrice: "1500000",
+      })
+      .returning();
+
+    // Create a pending review
+    const [pendingReview] = await db
+      .insert(reviews)
+      .values({
+        kostId,
+        roomId: room!.id,
+        reviewerName: "Budi Santoso",
+        claimedCheckInDate: "2025-01-01",
+        rating: 5,
+        comment: "Kost bersih dan nyaman sekali fasilitas lengkap.",
+        publicationStatus: "pending",
+        verificationStatus: "unmatched",
+      })
+      .returning();
+
+    // 1. Non-admin caller receives 403
+    const nonAdminRes = await overrideOwnerReject(
+      request(`/api/admin/reviews/${pendingReview!.id}/override-owner-reject`, {
+        method: "POST",
+        cookie: owner.cookie,
+        body: { action: "publish", reason: "Alasan valid sepuluh karakter" },
+      }),
+      { params: Promise.resolve({ id: pendingReview!.id }) },
+    );
+    expect(nonAdminRes.status).toBe(403);
+
+    // 2. Override on a pending review must be rejected with 409 Conflict
+    const pendingOverrideRes = await overrideOwnerReject(
+      request(`/api/admin/reviews/${pendingReview!.id}/override-owner-reject`, {
+        method: "POST",
+        cookie: admin.cookie,
+        body: { action: "publish", reason: "Alasan valid sepuluh karakter" },
+      }),
+      { params: Promise.resolve({ id: pendingReview!.id }) },
+    );
+    expect(pendingOverrideRes.status).toBe(409);
+
+    // 3. Request without reason must be rejected with 422
+    const noReasonRes = await overrideOwnerReject(
+      request(`/api/admin/reviews/${pendingReview!.id}/override-owner-reject`, {
+        method: "POST",
+        cookie: admin.cookie,
+        body: { action: "publish" },
+      }),
+      { params: Promise.resolve({ id: pendingReview!.id }) },
+    );
+    expect(noReasonRes.status).toBe(422);
+
+    // 4. Unknown fields must be rejected by .strict() with 422
+    const unknownFieldRes = await overrideOwnerReject(
+      request(`/api/admin/reviews/${pendingReview!.id}/override-owner-reject`, {
+        method: "POST",
+        cookie: admin.cookie,
+        body: {
+          action: "publish",
+          reason: "Alasan valid sepuluh karakter",
+          extra_unwanted: true,
+        },
+      }),
+      { params: Promise.resolve({ id: pendingReview!.id }) },
+    );
+    expect(unknownFieldRes.status).toBe(422);
+
+    // 5. When review is owner_rejected, admin override succeeds
+    await db
+      .update(reviews)
+      .set({ publicationStatus: "owner_rejected", verificationStatus: "rejected" })
+      .where(eq(reviews.id, pendingReview!.id));
+
+    const validOverrideRes = await overrideOwnerReject(
+      request(`/api/admin/reviews/${pendingReview!.id}/override-owner-reject`, {
+        method: "POST",
+        cookie: admin.cookie,
+        body: {
+          action: "publish",
+          reason: "Ulasan sah dari penyewa asli, diverifikasi bukti transfer.",
+        },
+      }),
+      { params: Promise.resolve({ id: pendingReview!.id }) },
+    );
+    expect(validOverrideRes.status).toBe(200);
+
+    const [updatedRow] = await db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.id, pendingReview!.id));
+    expect(updatedRow?.publicationStatus).toBe("published");
+    expect(updatedRow?.moderatedBy).toBe(admin.id);
   });
 });
