@@ -1,6 +1,6 @@
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { kostPhotos } from "@/lib/db/schema";
+import { kostListings, kostPhotos } from "@/lib/db/schema";
 import { getOwnedKost, getOwnedPhoto } from "@/lib/security/authorization";
 import {
   createPresignedPhotoUpload,
@@ -24,7 +24,7 @@ type PresignInput = z.infer<typeof photoPresignSchema>;
 type ConfirmInput = z.infer<typeof photoConfirmSchema>;
 type UpdateInput = z.infer<typeof photoUpdateSchema>;
 
-const MAX_PHOTOS_PER_LISTING = 50;
+export const MAX_PHOTOS_PER_LISTING = 10;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 export async function presignListingPhoto(
@@ -92,14 +92,24 @@ export async function confirmListingPhoto(
     );
   }
 
-  const [existing] = await db
-    .select({ id: kostPhotos.id })
-    .from(kostPhotos)
-    .where(eq(kostPhotos.objectKey, input.object_key))
-    .limit(1);
-  if (existing) throw new ConflictError("Foto ini sudah dikonfirmasi");
-
   return db.transaction(async (tx) => {
+    const [lockedListing] = await tx
+      .select({ id: kostListings.id })
+      .from(kostListings)
+      .where(eq(kostListings.id, kostId))
+      .for("update");
+
+    if (!lockedListing) {
+      throw new NotFoundError("Listing tidak ditemukan");
+    }
+
+    const [existing] = await tx
+      .select({ id: kostPhotos.id })
+      .from(kostPhotos)
+      .where(eq(kostPhotos.objectKey, input.object_key))
+      .limit(1);
+    if (existing) throw new ConflictError("Foto ini sudah dikonfirmasi");
+
     const [countRow] = await tx
       .select({ count: sql<number>`COUNT(*)::int` })
       .from(kostPhotos)
