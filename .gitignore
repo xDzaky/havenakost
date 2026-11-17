@@ -17,3 +17,6 @@ api.md
 # Data scraping — mengandung nomor telepon dan data pribadi (M-9)
 data/
 viewer.html
+
+# Laporan audit internal dan keamanan — jangan dipublikasikan ke repo publik
+docs/Laporan*.md
