@@ -7,6 +7,7 @@ export const POST = apiRoute(async (request) => {
   const input = await parseJson(request, reviewSubmitSchema);
   const result = await submitPublicReview(input, {
     ip: getClientIp(request),
+    userAgent: request.headers.get("user-agent") ?? undefined,
   });
   return jsonSuccess(result, {
     status: 201,

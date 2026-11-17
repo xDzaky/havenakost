@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { paginationSchema } from "@/lib/utils/pagination";
-import { uuidSchema } from "./common.schema";
+import { dateOnlySchema, uuidSchema } from "./common.schema";
 
 const roomStatusEnum = z.enum(["available", "occupied", "unavailable"]);
 
@@ -48,12 +48,8 @@ export const roomListQuerySchema = paginationSchema.extend({
 export const occupancyCreateSchema = z
   .object({
     tenant_name: z.string().trim().min(2).max(120),
-    check_in_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    check_out_date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .nullable()
-      .optional(),
+    check_in_date: dateOnlySchema,
+    check_out_date: dateOnlySchema.nullable().optional(),
     occupancy_status: z
       .enum(["active", "completed", "cancelled"])
       .default("active"),
@@ -72,15 +68,8 @@ export const occupancyCreateSchema = z
 export const occupancyUpdateSchema = z
   .object({
     tenant_name: z.string().trim().min(2).max(120).optional(),
-    check_in_date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
-    check_out_date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .nullable()
-      .optional(),
+    check_in_date: dateOnlySchema.optional(),
+    check_out_date: dateOnlySchema.nullable().optional(),
     occupancy_status: z
       .enum(["active", "completed", "cancelled"])
       .optional(),

@@ -2,8 +2,28 @@ import type { NextRequest } from "next/server";
 import type { ZodType } from "zod";
 import { handleApiError } from "./api-response";
 import { AppError } from "./api-error";
+import { env } from "@/lib/env";
 
 export type RouteContext<TParams> = { params: Promise<TParams> };
+
+export function verifyCsrfOrigin(request: NextRequest) {
+  const method = request.method.toUpperCase();
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const origin = request.headers.get("origin");
+    if (origin) {
+      const allowedOrigins = [
+        request.nextUrl.origin,
+        env.APP_BASE_URL?.replace(/\/+$/, ""),
+        env.BETTER_AUTH_URL?.replace(/\/+$/, ""),
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+      ].filter(Boolean);
+      if (!allowedOrigins.includes(origin)) {
+        throw new AppError("Origin request tidak diizinkan (CSRF)", 403);
+      }
+    }
+  }
+}
 
 /**
  * Wraps a route handler with centralized, sanitized error handling.
@@ -22,6 +42,7 @@ export function apiRoute<TParams = Record<string, never>>(
     },
   ) => {
     try {
+      verifyCsrfOrigin(request);
       return await handler(request, context);
     } catch (error) {
       return handleApiError(error);
@@ -33,6 +54,10 @@ export async function parseJson<T>(
   request: NextRequest,
   schema: ZodType<T>,
 ): Promise<T> {
+  const contentType = request.headers.get("content-type");
+  if (contentType && !contentType.includes("application/json")) {
+    throw new AppError("Content-Type harus application/json", 415);
+  }
   let body: unknown;
   try {
     body = await request.json();
@@ -48,6 +73,10 @@ export async function parseOptionalJson<T>(
 ): Promise<T | undefined> {
   const text = await request.text();
   if (!text.trim()) return undefined;
+  const contentType = request.headers.get("content-type");
+  if (contentType && !contentType.includes("application/json")) {
+    throw new AppError("Content-Type harus application/json", 415);
+  }
   let body: unknown;
   try {
     body = JSON.parse(text);
@@ -70,13 +99,21 @@ export function parseQuery<T>(
 }
 
 export function getClientIp(request: NextRequest): string {
+  const vercelForwarded = request.headers.get("x-vercel-forwarded-for");
+  if (vercelForwarded) {
+    return vercelForwarded.split(",")[0]?.trim() || "unknown";
+  }
+  const cfConnecting = request.headers.get("cf-connecting-ip");
+  if (cfConnecting) {
+    return cfConnecting.trim();
+  }
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) {
+    return realIp.trim();
+  }
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
     return forwarded.split(",")[0]?.trim() || "unknown";
   }
-  return (
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
+  return "unknown";
 }

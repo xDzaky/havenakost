@@ -9,7 +9,9 @@ import {
   isAllowedImageType,
   isObjectKeyForKost,
   publicUrlForKey,
+  verifyImageMagicBytes,
 } from "@/lib/storage/r2";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { AppError, ConflictError, NotFoundError } from "@/lib/utils/api-error";
 import type { z } from "zod";
 import type {
@@ -31,6 +33,13 @@ export async function presignListingPhoto(
   input: PresignInput,
 ) {
   await getOwnedKost(ownerId, kostId);
+
+  await enforceRateLimit({
+    scope: "photo-presign",
+    identifier: ownerId,
+    limit: 30,
+    windowSeconds: 3600,
+  });
 
   const [countRow] = await db
     .select({ count: sql<number>`COUNT(*)::int` })
@@ -72,13 +81,14 @@ export async function confirmListingPhoto(
     throw new AppError("Ukuran file melebihi batas 10 MB", 422);
   }
 
-  const [countRow] = await db
-    .select({ count: sql<number>`COUNT(*)::int` })
-    .from(kostPhotos)
-    .where(eq(kostPhotos.kostId, kostId));
-  if ((countRow?.count ?? 0) >= MAX_PHOTOS_PER_LISTING) {
-    throw new ConflictError(
-      `Maksimal ${MAX_PHOTOS_PER_LISTING} foto per listing`,
+  const magicValid = await verifyImageMagicBytes(
+    input.object_key,
+    head.contentType,
+  );
+  if (!magicValid) {
+    throw new AppError(
+      "Format isi file tidak sesuai dengan tipe gambar yang dideklarasikan",
+      422,
     );
   }
 
@@ -90,6 +100,16 @@ export async function confirmListingPhoto(
   if (existing) throw new ConflictError("Foto ini sudah dikonfirmasi");
 
   return db.transaction(async (tx) => {
+    const [countRow] = await tx
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(kostPhotos)
+      .where(eq(kostPhotos.kostId, kostId));
+    if ((countRow?.count ?? 0) >= MAX_PHOTOS_PER_LISTING) {
+      throw new ConflictError(
+        `Maksimal ${MAX_PHOTOS_PER_LISTING} foto per listing`,
+      );
+    }
+
     if (input.is_cover) {
       await tx
         .update(kostPhotos)

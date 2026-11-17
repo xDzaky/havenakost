@@ -14,6 +14,7 @@ export const POST = ownerRoute<Params>(async (request, context, session) => {
     session.user.id,
     reviewId,
     body?.occupancy_id,
+    body?.override_reason,
   );
   return jsonSuccess(review, {
     message:

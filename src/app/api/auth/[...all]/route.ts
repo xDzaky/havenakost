@@ -14,11 +14,21 @@ export async function POST(request: NextRequest) {
     const path = request.nextUrl.pathname;
     if (path.endsWith("/sign-in/email")) {
       await enforceRateLimit({
-        scope: "auth-signin",
+        scope: "auth-signin-ip",
         identifier: getClientIp(request),
         limit: 10,
         windowSeconds: 300,
       });
+
+      const body = await request.clone().json().catch(() => ({}));
+      if (typeof body.email === "string" && body.email.trim()) {
+        await enforceRateLimit({
+          scope: "auth-signin-email",
+          identifier: body.email.toLowerCase().trim(),
+          limit: 8,
+          windowSeconds: 15 * 60,
+        });
+      }
     } else if (path.endsWith("/sign-up/email")) {
       await enforceRateLimit({
         scope: "auth-signup",

@@ -16,8 +16,21 @@ export const reviewSubmitSchema = z
     claimed_check_in_date: dateOnlySchema,
     claimed_check_out_date: dateOnlySchema.nullable().optional(),
     rating: ratingSchema,
-    comment: z.string().trim().min(10).max(2_000),
+    comment: z
+      .string()
+      .trim()
+      .min(10)
+      .max(2_000)
+      .refine(
+        (val) => !/(https?:\/\/|www\.)[^\s]+/i.test(val),
+        "Komentar tidak boleh mengandung tautan/link",
+      )
+      .refine(
+        (val) => !/(?:\+?62|08)[0-9]{8,13}/.test(val.replace(/[\s-]/g, "")),
+        "Komentar tidak boleh mengandung nomor telepon",
+      ),
     turnstile_token: z.string().trim().min(1).max(4_096),
+    consent_privacy: z.boolean().optional(),
   })
   .strict()
   .refine(
@@ -32,7 +45,7 @@ export const reviewSubmitSchema = z
 
 export const ownerReviewQuerySchema = paginationSchema.extend({
   publication_status: z
-    .enum(["pending", "published", "rejected", "hidden"])
+    .enum(["pending", "published", "rejected", "hidden", "owner_rejected"])
     .optional(),
   verification_status: z
     .enum([
@@ -50,6 +63,7 @@ export const ownerReviewQuerySchema = paginationSchema.extend({
 export const reviewVerifySchema = z
   .object({
     occupancy_id: uuidSchema.optional(),
+    override_reason: z.string().trim().min(5).max(500).optional(),
   })
   .strict()
   .optional();
@@ -57,6 +71,19 @@ export const reviewVerifySchema = z
 export const reviewRejectSchema = z
   .object({
     reason: z.string().trim().min(5).max(500),
+  })
+  .strict();
+
+export const reviewReportSchema = z
+  .object({
+    reason: z.string().trim().min(5).max(500),
+    turnstile_token: z.string().trim().min(1).max(4_096).optional(),
+  })
+  .strict();
+
+export const reviewReplySchema = z
+  .object({
+    reply: z.string().trim().min(5).max(1_000),
   })
   .strict();
 

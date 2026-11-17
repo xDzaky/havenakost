@@ -20,6 +20,10 @@ export const adminLogs = pgTable(
     entityId: text("entity_id"),
     description: text("description"),
     metadata: jsonb("metadata"),
+    ipHash: text("ip_hash"),
+    userAgent: text("user_agent"),
+    before: jsonb("before"),
+    after: jsonb("after"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

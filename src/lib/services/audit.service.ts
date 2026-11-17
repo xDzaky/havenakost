@@ -35,9 +35,15 @@ export async function logAdmin(
     entityId?: string | null;
     description?: string | null;
     metadata?: unknown;
+    ipHash?: string | null;
+    userAgent?: string | null;
+    before?: unknown;
+    after?: unknown;
   },
+  tx?: Parameters<Parameters<typeof db.transaction>[0]>[0],
 ): Promise<void> {
-  await db.insert(adminLogs).values({
+  const client = tx ?? db;
+  await client.insert(adminLogs).values({
     adminId,
     action: entry.action,
     entityType: entry.entityType,
@@ -45,5 +51,9 @@ export async function logAdmin(
     description: entry.description ?? null,
     metadata:
       entry.metadata === undefined ? null : (sanitize(entry.metadata) as object),
+    ipHash: entry.ipHash ?? null,
+    userAgent: entry.userAgent ?? null,
+    before: entry.before === undefined ? null : (sanitize(entry.before) as object),
+    after: entry.after === undefined ? null : (sanitize(entry.after) as object),
   });
 }

@@ -125,6 +125,23 @@ export async function createSubscriptionPayment(
 
   if (!plan) throw new NotFoundError("Paket langganan tidak ditemukan");
 
+  const [existingPending] = await db
+    .select({ id: subscriptionPayments.id })
+    .from(subscriptionPayments)
+    .where(
+      and(
+        eq(subscriptionPayments.ownerId, ownerId),
+        eq(subscriptionPayments.status, "pending"),
+      ),
+    )
+    .limit(1);
+
+  if (existingPending) {
+    throw new ConflictError(
+      "Anda sudah memiliki pengajuan pembayaran yang masih menunggu verifikasi admin.",
+    );
+  }
+
   if (Math.abs(Number(plan.price) - input.payment_amount) > 0.001) {
     throw new AppError(
       `Nominal pembayaran harus sama dengan harga paket (${plan.price})`,

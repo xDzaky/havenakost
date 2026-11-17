@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   and,
   desc,
@@ -25,7 +26,7 @@ import {
 import { offsetOf, paginationMeta } from "@/lib/utils/pagination";
 import { normalizeName, toPublicDisplayName } from "@/lib/utils/slug";
 import { verifyTurnstile } from "@/lib/security/turnstile";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { enforceRateLimit, hashIdentifier } from "@/lib/security/rate-limit";
 import { logAdmin } from "./audit.service";
 
 type ReviewRow = typeof reviews.$inferSelect;
@@ -101,18 +102,12 @@ async function findMatchingCandidates(input: {
  */
 export async function submitPublicReview(
   input: ReviewSubmitInput,
-  context: { ip: string },
+  context: { ip: string; userAgent?: string },
 ) {
   await enforceRateLimit({
     scope: "review-ip",
     identifier: context.ip,
-    limit: 5,
-    windowSeconds: 60 * 60,
-  });
-  await enforceRateLimit({
-    scope: "review-token",
-    identifier: input.qr_token,
-    limit: 3,
+    limit: 20,
     windowSeconds: 60 * 60,
   });
 
@@ -134,6 +129,18 @@ export async function submitPublicReview(
   ) {
     throw new ConflictError("Kost ini sedang tidak menerima review");
   }
+
+  await enforceRateLimit({
+    scope: "review-token",
+    identifier: input.qr_token,
+    limit: 10,
+    windowSeconds: 24 * 60 * 60,
+  });
+
+  const ipHash = hashIdentifier(context.ip);
+  const userAgentHash = context.userAgent
+    ? createHash("sha256").update(context.userAgent).digest("hex")
+    : null;
 
   const candidates = await findMatchingCandidates({
     roomId: target.room.id,
@@ -169,6 +176,8 @@ export async function submitPublicReview(
         comment: input.comment,
         verificationStatus,
         publicationStatus: "pending",
+        ipHash,
+        userAgentHash,
       })
       .returning();
 
@@ -199,7 +208,12 @@ export async function listOwnerReviews(
   query: {
     page: number;
     limit: number;
-    publication_status?: "pending" | "published" | "rejected" | "hidden";
+    publication_status?:
+      | "pending"
+      | "published"
+      | "rejected"
+      | "hidden"
+      | "owner_rejected";
     verification_status?:
       | "unmatched"
       | "possible_match"
@@ -221,9 +235,6 @@ export async function listOwnerReviews(
   }
   if (query.kost_id) conditions.push(eq(reviews.kostId, query.kost_id));
   if (query.room_id) conditions.push(eq(reviews.roomId, query.room_id));
-  if (query.publication_status) {
-    conditions.push(eq(reviews.publicationStatus, query.publication_status));
-  }
 
   const where = and(...conditions)!;
 
@@ -401,6 +412,7 @@ export async function verifyOwnerReview(
   ownerId: string,
   reviewId: string,
   occupancyId?: string,
+  overrideReason?: string,
 ) {
   const result = await db.transaction(async (tx) => {
     await lockReview(tx, reviewId);
@@ -419,6 +431,11 @@ export async function verifyOwnerReview(
       .limit(1);
 
     if (!row) throw new NotFoundError("Review tidak ditemukan");
+    if (row.review.moderatedBy !== null) {
+      throw new ForbiddenError(
+        "Review ini sudah dimoderasi admin dan tidak dapat diubah pemilik.",
+      );
+    }
     if (row.review.publicationStatus === "hidden") {
       throw new ForbiddenError(
         "Review sedang disembunyikan admin dan tidak dapat diverifikasi pemilik.",
@@ -440,13 +457,26 @@ export async function verifyOwnerReview(
       );
     }
 
-    await assertOccupancyForRoom(
+    const occupancy = await assertOccupancyForRoom(
       tx,
       chosenOccupancyId,
       row.review.roomId,
       row.review.kostId,
     );
     await assertOccupancyNotUsed(tx, chosenOccupancyId, reviewId);
+
+    const normReviewer = normalizeName(row.review.reviewerName);
+    const normTenant = normalizeName(occupancy.tenantName);
+    const namesMatch = normReviewer === normTenant;
+
+    if (!namesMatch) {
+      if (!overrideReason || overrideReason.trim().length < 5) {
+        throw new AppError(
+          "Nama penghuni tidak cocok dengan nama pengulas. Wajib sertakan alasan override (minimal 5 karakter).",
+          422,
+        );
+      }
+    }
 
     const [updated] = await tx
       .update(reviews)
@@ -455,6 +485,7 @@ export async function verifyOwnerReview(
         publicationStatus: "published",
         matchedOccupancyId: chosenOccupancyId,
         verifiedOccupancyId: chosenOccupancyId,
+        overrideReason: !namesMatch ? overrideReason?.trim() : null,
         ownerReviewedBy: ownerId,
         ownerReviewedAt: new Date(),
         rejectionReason: null,
@@ -492,6 +523,11 @@ export async function rejectOwnerReview(
       .limit(1);
 
     if (!row) throw new NotFoundError("Review tidak ditemukan");
+    if (row.review.moderatedBy !== null) {
+      throw new ForbiddenError(
+        "Review ini sudah dimoderasi admin dan tidak dapat diubah pemilik.",
+      );
+    }
     if (
       row.review.verificationStatus === "verified" ||
       row.review.publicationStatus === "published"
@@ -508,7 +544,7 @@ export async function rejectOwnerReview(
       .update(reviews)
       .set({
         verificationStatus: "rejected",
-        publicationStatus: "rejected",
+        publicationStatus: "owner_rejected",
         rejectionReason: reason,
         ownerReviewedBy: ownerId,
         ownerReviewedAt: new Date(),
@@ -767,4 +803,113 @@ export function rejectReviewAsAdmin(
   reason: string,
 ) {
   return adminReviewAction(adminId, reviewId, "reject", { reason });
+}
+
+export async function overrideOwnerRejectReview(
+  adminId: string,
+  reviewId: string,
+  action: "publish" | "reject",
+  reason?: string,
+) {
+  const [row] = await db
+    .select({ review: reviews, kost: kostListings })
+    .from(reviews)
+    .innerJoin(kostListings, eq(reviews.kostId, kostListings.id))
+    .where(eq(reviews.id, reviewId))
+    .limit(1);
+
+  if (!row) throw new NotFoundError("Review tidak ditemukan");
+
+  const [updated] = await db
+    .update(reviews)
+    .set({
+      publicationStatus: action === "publish" ? "published" : "rejected",
+      verificationStatus: action === "publish" ? "verified" : "rejected",
+      moderatedBy: adminId,
+      moderatedAt: new Date(),
+      moderationReason: reason ?? `Admin override owner rejection: ${action}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(reviews.id, reviewId))
+    .returning();
+
+  await logAdmin(adminId, {
+    action: "review.override_owner_reject",
+    entityType: "review",
+    entityId: reviewId,
+    description: `Admin override penolakan owner menjadi ${action}`,
+    metadata: { reason },
+  });
+
+  return updated;
+}
+
+export async function reportPublicReview(
+  reviewId: string,
+  reason: string,
+  context: { ip: string },
+) {
+  await enforceRateLimit({
+    scope: "review-report",
+    identifier: context.ip,
+    limit: 10,
+    windowSeconds: 3600,
+  });
+
+  const [row] = await db
+    .select({ id: reviews.id, isFlagged: reviews.isFlagged })
+    .from(reviews)
+    .where(eq(reviews.id, reviewId))
+    .limit(1);
+
+  if (!row) throw new NotFoundError("Review tidak ditemukan");
+
+  await db
+    .update(reviews)
+    .set({
+      isFlagged: true,
+      flagReason: reason,
+      updatedAt: new Date(),
+    })
+    .where(eq(reviews.id, reviewId));
+
+  return { message: "Laporan review diterima dan akan ditinjau admin." };
+}
+
+export async function replyOwnerReview(
+  ownerId: string,
+  reviewId: string,
+  replyText: string,
+) {
+  const [row] = await db
+    .select({ review: reviews, kost: kostListings })
+    .from(reviews)
+    .innerJoin(kostListings, eq(reviews.kostId, kostListings.id))
+    .where(
+      and(
+        eq(reviews.id, reviewId),
+        eq(kostListings.ownerId, ownerId),
+        isNull(kostListings.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!row) throw new NotFoundError("Review tidak ditemukan");
+  if (row.review.publicationStatus !== "published") {
+    throw new ForbiddenError(
+      "Hanya review yang sudah dipublikasikan yang dapat dibalas.",
+    );
+  }
+
+  const [updated] = await db
+    .update(reviews)
+    .set({
+      ownerReply: replyText,
+      ownerRepliedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(reviews.id, reviewId))
+    .returning();
+
+  return updated;
 }

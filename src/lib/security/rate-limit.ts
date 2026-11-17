@@ -3,7 +3,7 @@ import { sqlClient } from "@/lib/db";
 import { env } from "@/lib/env";
 import { AppError } from "@/lib/utils/api-error";
 
-function hmac(value: string): string {
+export function hashIdentifier(value: string): string {
   const secret =
     env.REVIEW_RATE_LIMIT_HMAC_SECRET ??
     env.BETTER_AUTH_SECRET ??
@@ -15,7 +15,7 @@ export function rateLimitKey(
   scope: string,
   identifier: string,
 ): string {
-  return `${scope}:${hmac(identifier)}`;
+  return `${scope}:${hashIdentifier(identifier)}`;
 }
 
 export function safeCompare(a: string, b: string): boolean {

@@ -39,6 +39,7 @@ export async function resetDatabase() {
       "subscription_plans",
       "admin_logs",
       "rate_limit_buckets",
+      "rate_limit",
       "facilities"
     RESTART IDENTITY CASCADE
   `);

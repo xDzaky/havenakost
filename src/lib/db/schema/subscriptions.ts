@@ -118,6 +118,9 @@ export const subscriptionPayments = pgTable(
     index("subscription_payments_owner_id_idx").on(table.ownerId),
     index("subscription_payments_status_idx").on(table.status),
     index("subscription_payments_plan_id_idx").on(table.planId),
+    uniqueIndex("subscription_payments_one_pending_per_owner")
+      .on(table.ownerId)
+      .where(sql`${table.status} = 'pending'`),
     check(
       "subscription_payments_amount_check",
       sql`${table.paymentAmount} > 0`,

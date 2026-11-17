@@ -1,11 +1,20 @@
 import { and, eq, isNull } from "drizzle-orm";
-import { apiRoute } from "@/lib/utils/route";
+import { apiRoute, getClientIp } from "@/lib/utils/route";
 import { getObject } from "@/lib/storage/r2";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { AppError, NotFoundError } from "@/lib/utils/api-error";
 import { db } from "@/lib/db";
 import { kostListings, kostPhotos } from "@/lib/db/schema";
 
 export const GET = apiRoute(async (request) => {
+  const ip = getClientIp(request);
+  await enforceRateLimit({
+    scope: "public-photos",
+    identifier: ip,
+    limit: 300,
+    windowSeconds: 60,
+  });
+
   const key = request.nextUrl.searchParams.get("key");
   if (!key || !key.startsWith("kosts/") || key.includes("..")) {
     throw new AppError("Object key tidak valid", 400);
@@ -31,7 +40,7 @@ export const GET = apiRoute(async (request) => {
 
   const headers = new Headers({
     "Content-Type": object.ContentType ?? "application/octet-stream",
-    "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+    "Cache-Control": "public, max-age=300, s-maxage=300",
     "X-Content-Type-Options": "nosniff",
   });
   if (object.ContentLength !== undefined) {

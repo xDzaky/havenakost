@@ -20,6 +20,7 @@ import {
   ownerProfiles,
   ownerSubscriptions,
   reviews,
+  session,
   user,
 } from "@/lib/db/schema";
 import {
@@ -345,6 +346,12 @@ async function updateOwnerApproval(
 
     if (!updated) throw new NotFoundError("Profil pemilik tidak ditemukan");
 
+    if (input.status === "rejected") {
+      await tx
+        .delete(session)
+        .where(eq(session.userId, ownerUserId));
+    }
+
     if (input.status === "suspended" || input.status === "rejected") {
       await tx
         .update(kostListings)
@@ -498,67 +505,77 @@ export async function getAdminListingDetail(kostId: string) {
 }
 
 export async function approveListing(adminId: string, kostId: string) {
-  const [listing] = await db
-    .select({
-      id: kostListings.id,
-      status: kostListings.status,
-      name: kostListings.name,
-      ownerId: kostListings.ownerId,
-      deletedAt: kostListings.deletedAt,
-      approvalStatus: ownerProfiles.approvalStatus,
-    })
-    .from(kostListings)
-    .leftJoin(ownerProfiles, eq(ownerProfiles.userId, kostListings.ownerId))
-    .where(eq(kostListings.id, kostId))
-    .limit(1);
-
-  if (!listing) throw new NotFoundError("Listing tidak ditemukan");
-  if (listing.deletedAt) {
-    throw new ConflictError(
-      "Listing sudah dihapus (soft delete) dan tidak dapat dipublikasikan.",
+  const result = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT id FROM kost_listings WHERE id = ${kostId} FOR UPDATE`,
     );
-  }
-  if (listing.approvalStatus !== "approved") {
-    throw new ForbiddenError(
-      "Pemilik listing belum disetujui. Setujui pemilik terlebih dahulu.",
+
+    const [listing] = await tx
+      .select({
+        id: kostListings.id,
+        status: kostListings.status,
+        name: kostListings.name,
+        ownerId: kostListings.ownerId,
+        deletedAt: kostListings.deletedAt,
+        approvalStatus: ownerProfiles.approvalStatus,
+      })
+      .from(kostListings)
+      .leftJoin(ownerProfiles, eq(ownerProfiles.userId, kostListings.ownerId))
+      .where(eq(kostListings.id, kostId))
+      .limit(1);
+
+    if (!listing) throw new NotFoundError("Listing tidak ditemukan");
+    if (listing.deletedAt) {
+      throw new ConflictError(
+        "Listing sudah dihapus (soft delete) dan tidak dapat dipublikasikan.",
+      );
+    }
+    if (listing.approvalStatus !== "approved") {
+      throw new ForbiddenError(
+        "Pemilik listing belum disetujui. Setujui pemilik terlebih dahulu.",
+      );
+    }
+    if (listing.status === "published") {
+      throw new ConflictError("Listing sudah published");
+    }
+
+    const [updated] = await tx
+      .update(kostListings)
+      .set({
+        status: "published",
+        verifiedAt: new Date(),
+        rejectionReason: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(kostListings.id, kostId))
+      .returning();
+
+    await tx.insert(notifications).values({
+      recipientUserId: listing.ownerId,
+      type: "listing_published",
+      title: "Listing disetujui",
+      message: `Listing ${listing.name} telah disetujui dan tampil di pencarian publik.`,
+      relatedEntityType: "kost_listing",
+      relatedEntityId: kostId,
+    });
+
+    await logAdmin(
+      adminId,
+      {
+        action: "listing.approve",
+        entityType: "kost_listing",
+        entityId: kostId,
+        description: `Menyetujui listing ${listing.name}`,
+        before: { status: listing.status },
+        after: { status: "published" },
+      },
+      tx,
     );
-  }
-  if (listing.status === "published") {
-    throw new ConflictError("Listing sudah published");
-  }
 
-  const [updated] = await db
-    .update(kostListings)
-    .set({
-      status: "published",
-      verifiedAt: new Date(),
-      rejectionReason: null,
-      updatedAt: new Date(),
-    })
-    .where(eq(kostListings.id, kostId))
-    .returning();
-
-  await createNotification({
-    recipientUserId: listing.ownerId,
-    type: "listing_published",
-    title: "Listing disetujui",
-    message: `Listing ${listing.name} telah disetujui dan tampil di pencarian publik.`,
-    relatedEntityType: "kost_listing",
-    relatedEntityId: kostId,
+    return updated;
   });
 
-  try {
-    await logAdmin(adminId, {
-      action: "listing.approve",
-      entityType: "kost_listing",
-      entityId: kostId,
-      description: `Menyetujui listing ${listing.name}`,
-    });
-  } catch (error) {
-    console.error("[audit] gagal mencatat approval listing", error);
-  }
-
-  return updated;
+  return result;
 }
 
 export async function rejectListing(
@@ -566,46 +583,56 @@ export async function rejectListing(
   kostId: string,
   reason: string,
 ) {
-  const [listing] = await db
-    .select({ id: kostListings.id, name: kostListings.name, ownerId: kostListings.ownerId })
-    .from(kostListings)
-    .where(eq(kostListings.id, kostId))
-    .limit(1);
+  const result = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT id FROM kost_listings WHERE id = ${kostId} FOR UPDATE`,
+    );
 
-  if (!listing) throw new NotFoundError("Listing tidak ditemukan");
+    const [listing] = await tx
+      .select({ id: kostListings.id, status: kostListings.status, name: kostListings.name, ownerId: kostListings.ownerId })
+      .from(kostListings)
+      .where(eq(kostListings.id, kostId))
+      .limit(1);
 
-  const [updated] = await db
-    .update(kostListings)
-    .set({
-      status: "rejected",
-      rejectionReason: reason,
-      updatedAt: new Date(),
-    })
-    .where(eq(kostListings.id, kostId))
-    .returning();
+    if (!listing) throw new NotFoundError("Listing tidak ditemukan");
 
-  await createNotification({
-    recipientUserId: listing.ownerId,
-    type: "listing_rejected",
-    title: "Listing ditolak",
-    message: `Listing ${listing.name} ditolak: ${reason}`,
-    relatedEntityType: "kost_listing",
-    relatedEntityId: kostId,
+    const [updated] = await tx
+      .update(kostListings)
+      .set({
+        status: "rejected",
+        rejectionReason: reason,
+        updatedAt: new Date(),
+      })
+      .where(eq(kostListings.id, kostId))
+      .returning();
+
+    await tx.insert(notifications).values({
+      recipientUserId: listing.ownerId,
+      type: "listing_rejected",
+      title: "Listing ditolak",
+      message: `Listing ${listing.name} ditolak: ${reason}`,
+      relatedEntityType: "kost_listing",
+      relatedEntityId: kostId,
+    });
+
+    await logAdmin(
+      adminId,
+      {
+        action: "listing.reject",
+        entityType: "kost_listing",
+        entityId: kostId,
+        description: `Menolak listing ${listing.name}`,
+        metadata: { reason },
+        before: { status: listing.status },
+        after: { status: "rejected" },
+      },
+      tx,
+    );
+
+    return updated;
   });
 
-  try {
-    await logAdmin(adminId, {
-      action: "listing.reject",
-      entityType: "kost_listing",
-      entityId: kostId,
-      description: `Menolak listing ${listing.name}`,
-      metadata: { reason },
-    });
-  } catch (error) {
-    console.error("[audit] gagal mencatat penolakan listing", error);
-  }
-
-  return updated;
+  return result;
 }
 
 export async function setListingStatus(
@@ -618,47 +645,111 @@ export async function setListingStatus(
     throw new AppError("Alasan wajib diisi saat menolak listing", 422);
   }
 
-  const [existing] = await db
-    .select({
-      id: kostListings.id,
-      name: kostListings.name,
-      ownerId: kostListings.ownerId,
-      deletedAt: kostListings.deletedAt,
-    })
-    .from(kostListings)
-    .where(eq(kostListings.id, kostId))
-    .limit(1);
-  if (!existing) throw new NotFoundError("Listing tidak ditemukan");
-  if (status === "published" && existing.deletedAt) {
-    throw new ConflictError(
-      "Listing sudah dihapus (soft delete) dan tidak dapat dipublikasikan.",
+  const result = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT id FROM kost_listings WHERE id = ${kostId} FOR UPDATE`,
     );
-  }
 
-  const [updated] = await db
-    .update(kostListings)
-    .set({
-      status,
-      rejectionReason: status === "rejected" ? reason : null,
-      verifiedAt: status === "published" ? new Date() : null,
-      updatedAt: new Date(),
-    })
-    .where(eq(kostListings.id, kostId))
+    const [existing] = await tx
+      .select({
+        id: kostListings.id,
+        status: kostListings.status,
+        name: kostListings.name,
+        ownerId: kostListings.ownerId,
+        deletedAt: kostListings.deletedAt,
+        approvalStatus: ownerProfiles.approvalStatus,
+      })
+      .from(kostListings)
+      .leftJoin(ownerProfiles, eq(ownerProfiles.userId, kostListings.ownerId))
+      .where(eq(kostListings.id, kostId))
+      .limit(1);
+
+    if (!existing) throw new NotFoundError("Listing tidak ditemukan");
+    if (status === "published" && existing.deletedAt) {
+      throw new ConflictError(
+        "Listing sudah dihapus (soft delete) dan tidak dapat dipublikasikan.",
+      );
+    }
+    if (status === "published" && existing.approvalStatus !== "approved") {
+      throw new ForbiddenError(
+        "Pemilik listing belum disetujui. Setujui pemilik terlebih dahulu.",
+      );
+    }
+
+    const [updated] = await tx
+      .update(kostListings)
+      .set({
+        status,
+        rejectionReason: status === "rejected" ? reason : null,
+        verifiedAt: status === "published" ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(kostListings.id, kostId))
+      .returning();
+
+    if (status === "published") {
+      await tx.insert(notifications).values({
+        recipientUserId: existing.ownerId,
+        type: "listing_published",
+        title: "Listing dipublikasikan",
+        message: `Listing ${existing.name} telah dipublikasikan oleh admin.`,
+        relatedEntityType: "kost_listing",
+        relatedEntityId: kostId,
+      });
+    } else if (status === "rejected") {
+      await tx.insert(notifications).values({
+        recipientUserId: existing.ownerId,
+        type: "listing_rejected",
+        title: "Listing ditolak",
+        message: `Listing ${existing.name} ditolak: ${reason}`,
+        relatedEntityType: "kost_listing",
+        relatedEntityId: kostId,
+      });
+    }
+
+    await logAdmin(
+      adminId,
+      {
+        action: "listing.status",
+        entityType: "kost_listing",
+        entityId: kostId,
+        description: `Mengubah status listing ${existing.name} menjadi ${status}`,
+        metadata: { reason: reason ?? null },
+        before: { status: existing.status },
+        after: { status },
+      },
+      tx,
+    );
+
+    return updated;
+  });
+
+  return result;
+}
+
+export async function revokeUserSessions(adminId: string, userId: string) {
+  const [targetUser] = await db
+    .select({ id: user.id, email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+
+  if (!targetUser) throw new NotFoundError("Pengguna tidak ditemukan");
+
+  const deleted = await db
+    .delete(session)
+    .where(eq(session.userId, userId))
     .returning();
 
-  try {
-    await logAdmin(adminId, {
-      action: "listing.status",
-      entityType: "kost_listing",
-      entityId: kostId,
-      description: `Mengubah status listing ${existing.name} menjadi ${status}`,
-      metadata: { reason: reason ?? null },
-    });
-  } catch (error) {
-    console.error("[audit] gagal mencatat status listing", error);
-  }
+  await logAdmin(adminId, {
+    action: "user.revoke_sessions",
+    entityType: "user",
+    entityId: userId,
+    description: `Admin mencabut ${deleted.length} sesi aktif pengguna ${targetUser.email}`,
+    metadata: { sessionCount: deleted.length },
+  });
 
-  return updated;
+  return { revokedCount: deleted.length };
 }
 
 export async function listAdminLogs(query: {

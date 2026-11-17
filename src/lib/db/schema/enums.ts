@@ -48,6 +48,7 @@ export const publicationStatusEnum = pgEnum("review_publication_status", [
   "published",
   "rejected",
   "hidden",
+  "owner_rejected",
 ]);
 
 export const financialRecordTypeEnum = pgEnum("financial_record_type", [

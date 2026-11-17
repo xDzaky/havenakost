@@ -7,7 +7,9 @@ import {
   kostPhotos,
   kostRooms,
   ownerProfiles,
+  ownerSubscriptions,
   reviews,
+  subscriptionPlans,
   user,
 } from "@/lib/db/schema";
 import type {
@@ -15,11 +17,16 @@ import type {
   KostUpdateInput,
   PublicKostQuery,
 } from "@/lib/validators/kost.schema";
-import { AppError, NotFoundError } from "@/lib/utils/api-error";
+import {
+  AppError,
+  ForbiddenError,
+  NotFoundError,
+} from "@/lib/utils/api-error";
 import { offsetOf, paginationMeta } from "@/lib/utils/pagination";
 import { slugWithSuffix, slugify } from "@/lib/utils/slug";
 import { getOwnedKost } from "@/lib/security/authorization";
 import { assertOwnerCanPublish } from "./owner.service";
+import { notifyAdmins } from "./notification.service";
 
 const coverUrlSql = sql<string | null>`(
   SELECT p.image_url FROM kost_photos p
@@ -75,6 +82,10 @@ const listingCardSelect = {
   availableRoomCount: availableRoomCountSql,
 };
 
+function escapeIlike(val: string): string {
+  return val.replace(/([%_\\])/g, "\\$1");
+}
+
 function publicConditions(query: PublicKostQuery) {
   const conditions = [
     eq(kostListings.status, "published"),
@@ -82,7 +93,7 @@ function publicConditions(query: PublicKostQuery) {
   ];
 
   if (query.q) {
-    const pattern = `%${query.q}%`;
+    const pattern = `%${escapeIlike(query.q)}%`;
     conditions.push(
       or(
         ilike(kostListings.name, pattern),
@@ -90,9 +101,9 @@ function publicConditions(query: PublicKostQuery) {
       )!,
     );
   }
-  if (query.city) conditions.push(ilike(kostListings.city, query.city));
+  if (query.city) conditions.push(ilike(kostListings.city, escapeIlike(query.city)));
   if (query.district) {
-    conditions.push(ilike(kostListings.district, query.district));
+    conditions.push(ilike(kostListings.district, escapeIlike(query.district)));
   }
   if (query.gender_policy) {
     conditions.push(eq(kostListings.genderPolicy, query.gender_policy));
@@ -463,6 +474,41 @@ export async function createOwnerListing(
   ownerId: string,
   input: KostCreateInput,
 ) {
+  const [activeSub] = await db
+    .select({
+      subscription: ownerSubscriptions,
+      plan: subscriptionPlans,
+    })
+    .from(ownerSubscriptions)
+    .innerJoin(
+      subscriptionPlans,
+      eq(ownerSubscriptions.planId, subscriptionPlans.id),
+    )
+    .where(
+      and(
+        eq(ownerSubscriptions.ownerId, ownerId),
+        eq(ownerSubscriptions.status, "active"),
+      ),
+    )
+    .limit(1);
+
+  if (activeSub && activeSub.plan.maxListings !== null) {
+    const [existingCount] = await db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(kostListings)
+      .where(
+        and(
+          eq(kostListings.ownerId, ownerId),
+          isNull(kostListings.deletedAt),
+        ),
+      );
+    if ((existingCount?.count ?? 0) >= activeSub.plan.maxListings) {
+      throw new ForbiddenError(
+        `Batas kuota listing paket Anda (${activeSub.plan.maxListings}) telah tercapai. Tingkatkan paket langganan untuk menambah listing.`,
+      );
+    }
+  }
+
   const slug = await uniqueSlug(input.name);
 
   const created = await db.transaction(async (tx) => {
@@ -551,6 +597,25 @@ export async function updateOwnerListing(
   }
   if (input.status !== undefined) updates.status = input.status;
 
+  const sensitiveChanged =
+    (input.name !== undefined && input.name !== existing.name) ||
+    (input.description !== undefined && input.description !== existing.description) ||
+    (input.address !== undefined && input.address !== existing.address) ||
+    (input.latitude !== undefined && input.latitude.toFixed(6) !== existing.latitude) ||
+    (input.longitude !== undefined && input.longitude.toFixed(6) !== existing.longitude) ||
+    (input.contact_phone !== undefined && input.contact_phone !== existing.contactPhone);
+
+  let revertedToPending = false;
+  if (
+    existing.status === "published" &&
+    sensitiveChanged &&
+    input.status !== "archived"
+  ) {
+    updates.status = "pending";
+    updates.verifiedAt = null;
+    revertedToPending = true;
+  }
+
   await db.transaction(async (tx) => {
     await tx
       .update(kostListings)
@@ -566,6 +631,16 @@ export async function updateOwnerListing(
       await replaceFacilities(tx, kostId, input.facility_ids);
     }
   });
+
+  if (revertedToPending) {
+    await notifyAdmins({
+      type: "listing_pending",
+      title: "Perubahan informasi listing published",
+      message: `Listing ${existing.name} diubah oleh pemilik pada informasi sensitif dan memerlukan verifikasi ulang.`,
+      relatedEntityType: "kost_listing",
+      relatedEntityId: kostId,
+    });
+  }
 
   return getOwnerListing(ownerId, kostId);
 }

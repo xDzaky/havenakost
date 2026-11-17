@@ -70,7 +70,7 @@ export async function verifyTurnstile(
     throw new AppError(
       "Verifikasi keamanan gagal. Silakan coba lagi.",
       422,
-      { codes: result["error-codes"] ?? [] },
+      null,
       "TURNSTILE_FAILED",
     );
   }

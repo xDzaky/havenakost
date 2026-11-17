@@ -53,7 +53,15 @@ export const subscriptionPaymentSchema = z
     plan_id: uuidSchema,
     payment_method: z.string().trim().min(2).max(50),
     payment_amount: z.coerce.number().positive().max(1_000_000_000_000),
-    payment_proof: z.string().trim().max(1_000).optional(),
+    payment_proof: z
+      .string()
+      .trim()
+      .max(1_000)
+      .refine(
+        (val) => /^https:\/\/[^\s]+$/.test(val) || /^payments\/[A-Za-z0-9._/-]+$/.test(val),
+        "Bukti pembayaran harus berupa URL https:// yang valid atau object key yang sah",
+      )
+      .optional(),
   })
   .strict();
 

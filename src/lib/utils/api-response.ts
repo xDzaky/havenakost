@@ -45,7 +45,23 @@ function isPostgresError(error: unknown): error is { code: string } {
 
 export function handleApiError(error: unknown): NextResponse {
   if (error instanceof AppError) {
-    return jsonError(error.message, error.status, error.errors);
+    const res = jsonError(error.message, error.status, error.errors);
+    if (error.status === 429 && error.errors && typeof error.errors === "object") {
+      const errObj = error.errors as Record<string, unknown>;
+      if (errObj.retry_after_seconds !== undefined) {
+        res.headers.set("Retry-After", String(errObj.retry_after_seconds));
+      }
+      if (errObj.limit !== undefined) {
+        res.headers.set("X-RateLimit-Limit", String(errObj.limit));
+      }
+      if (errObj.remaining !== undefined) {
+        res.headers.set("X-RateLimit-Remaining", String(errObj.remaining));
+      }
+      if (errObj.reset !== undefined) {
+        res.headers.set("X-RateLimit-Reset", String(errObj.reset));
+      }
+    }
+    return res;
   }
 
   if (error instanceof ZodError) {
@@ -60,6 +76,9 @@ export function handleApiError(error: unknown): NextResponse {
   }
 
   if (isPostgresError(error)) {
+    if (error.code.startsWith("22")) {
+      return jsonError("Format data tidak valid", 422, null);
+    }
     if (error.code === "23505") {
       return jsonError("Data sudah ada (duplikat)", 409, null);
     }

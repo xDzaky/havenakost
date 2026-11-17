@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   index,
@@ -60,6 +61,13 @@ export const reviews = pgTable(
     }),
     moderatedAt: timestamp("moderated_at", { withTimezone: true }),
     moderationReason: text("moderation_reason"),
+    ipHash: text("ip_hash"),
+    userAgentHash: text("user_agent_hash"),
+    overrideReason: text("override_reason"),
+    isFlagged: boolean("is_flagged").default(false).notNull(),
+    flagReason: text("flag_reason"),
+    ownerReply: text("owner_reply"),
+    ownerRepliedAt: timestamp("owner_replied_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

@@ -14,14 +14,20 @@ export const auth = betterAuth({
       session: schema.session,
       account: schema.account,
       verification: schema.verification,
+      rateLimit: schema.rateLimit,
     },
   }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 8,
+    minPasswordLength: 12,
     maxPasswordLength: 128,
     autoSignIn: true,
     requireEmailVerification: false,
+    async sendResetPassword(data) {
+      if (!isProduction) {
+        console.log(`[auth] Password reset link for ${data.user.email}: ${data.url}`);
+      }
+    },
   },
   user: {
     additionalFields: {
@@ -41,7 +47,7 @@ export const auth = betterAuth({
     enabled: true,
     window: 60,
     max: 40,
-    storage: "memory",
+    storage: "database",
     customRules: {
       "/sign-in/email": { window: 300, max: 10 },
       "/sign-up/email": { window: 3600, max: 5 },
