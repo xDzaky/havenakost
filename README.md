@@ -13,9 +13,11 @@ scrape Google Maps untuk kebutuhan eksplorasi data.
 | Repository | <https://github.com/xDzaky/havenakost> |
 | Database | Neon PostgreSQL + PostGIS (3 migrasi applied) |
 | Storage / anti-bot | Cloudflare R2 (bucket privat) + Turnstile |
-| Test suite | 27 test Vitest lulus; smoke test 12 cek; e2e demo 21 langkah |
+| Test suite | 49 test Vitest lulus; smoke test 12 cek; e2e demo 21 langkah |
 
 Panduan setup, deploy, dan testing lengkap: **[docs/panduan-lengkap.md](docs/panduan-lengkap.md)**.
+
+Hasil security testing terakhir: **[SECURITY-AUDIT.md](SECURITY-AUDIT.md)**.
 
 ## Backend API
 
