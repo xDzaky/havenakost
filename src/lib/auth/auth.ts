@@ -3,7 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { env, isProduction } from "@/lib/env";
-import { sendEmail } from "@/lib/services/email.service";
+import { escapeHtml, sendEmail } from "@/lib/services/email.service";
 
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
@@ -28,7 +28,7 @@ export const auth = betterAuth({
       await sendEmail({
         to: data.user.email,
         subject: "Reset Kata Sandi - Havena Kost",
-        html: `<p>Halo ${data.user.name},</p><p>Anda meminta pengaturan ulang kata sandi. Silakan klik tautan di bawah ini:</p><p><a href="${data.url}">${data.url}</a></p><p>Abaikan email ini jika Anda tidak meminta reset kata sandi.</p>`,
+        html: `<p>Halo ${escapeHtml(data.user.name)},</p><p>Anda meminta pengaturan ulang kata sandi. Silakan klik tautan di bawah ini:</p><p><a href="${escapeHtml(data.url)}">${escapeHtml(data.url)}</a></p><p>Abaikan email ini jika Anda tidak meminta reset kata sandi.</p>`,
       });
     },
   },
@@ -37,7 +37,7 @@ export const auth = betterAuth({
       await sendEmail({
         to: data.user.email,
         subject: "Verifikasi Alamat Email - Havena Kost",
-        html: `<p>Halo ${data.user.name},</p><p>Terima kasih telah mendaftar di Havena Kost. Silakan klik tautan di bawah ini untuk memverifikasi email Anda:</p><p><a href="${data.url}">${data.url}</a></p>`,
+        html: `<p>Halo ${escapeHtml(data.user.name)},</p><p>Terima kasih telah mendaftar di Havena Kost. Silakan klik tautan di bawah ini untuk memverifikasi email Anda:</p><p><a href="${escapeHtml(data.url)}">${escapeHtml(data.url)}</a></p>`,
       });
     },
   },
@@ -56,7 +56,7 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24,
   },
   rateLimit: {
-    enabled: true,
+    enabled: process.env.NODE_ENV !== "test",
     window: 60,
     max: 40,
     storage: "database",

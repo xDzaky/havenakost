@@ -343,7 +343,7 @@ curl -s -b $ADMIN_JAR "$B/api/admin/owners?approval_status=pending&limit=50" | j
 curl -s -b $ADMIN_JAR -X POST "$B/api/admin/owners/<userId>/approve" | jq
 ```
 
-Owner `pending` masih bisa login, tetapi tidak bisa membuat/mengajukan listing.
+Owner `pending` masih bisa login dan menyiapkan listing `draft`, tetapi belum bisa mengajukan listing untuk publikasi (`PATCH status=pending`).
 
 ### 8.5 Owner membuat listing
 

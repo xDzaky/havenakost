@@ -6,6 +6,7 @@ import {
 import { reviewSubmitSchema } from "@/lib/validators/review.schema";
 import { normalizeName, slugify } from "@/lib/utils/slug";
 import { haversineMeters } from "@/lib/utils/geolocation";
+import { escapeHtml } from "@/lib/services/email.service";
 
 describe("validators and utilities", () => {
   it("normalizes names conservatively", () => {
@@ -58,6 +59,15 @@ describe("validators and utilities", () => {
     expect(
       reviewSubmitSchema.safeParse({ ...base, rating: 5 }).success,
     ).toBe(true);
+  });
+
+  it("escapes user-controlled values before embedding them in email HTML", () => {
+    expect(escapeHtml('<a href="https://evil.example">Klik</a>')).toBe(
+      "&lt;a href=&quot;https://evil.example&quot;&gt;Klik&lt;/a&gt;",
+    );
+    expect(escapeHtml(`Budi & "Santoso" <b onclick='x'>`)).toBe(
+      "Budi &amp; &quot;Santoso&quot; &lt;b onclick=&#39;x&#39;&gt;",
+    );
   });
 
   it("computes a plausible great-circle distance", () => {

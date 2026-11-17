@@ -89,16 +89,3 @@ export async function requireOwner(request: Request): Promise<{
   }
   return { user, profile };
 }
-
-export async function requireApprovedOwner(request: Request): Promise<{
-  user: AuthUser;
-  profile: OwnerProfile;
-}> {
-  const result = await requireOwner(request);
-  if (result.profile.approvalStatus !== "approved") {
-    throw new ForbiddenError(
-      "Akun pemilik belum disetujui admin. Listing belum dapat dipublikasikan.",
-    );
-  }
-  return result;
-}

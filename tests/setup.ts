@@ -15,3 +15,5 @@ process.env.TURNSTILE_SECRET_KEY =
   process.env.TURNSTILE_SECRET_KEY ?? "test-secret";
 process.env.REVIEW_RATE_LIMIT_HMAC_SECRET =
   process.env.REVIEW_RATE_LIMIT_HMAC_SECRET ?? "test-rate-limit-secret";
+delete process.env.RESEND_API_KEY;
+delete process.env.EMAIL_FROM;
