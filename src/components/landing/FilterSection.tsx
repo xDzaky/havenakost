@@ -702,6 +702,7 @@ export function FilterSection({
               dest={selectedDest}
               scanRadius={scanRadius}
               onOpenDetail={onOpenDetail}
+              onSelectDest={onSelectDest}
             />
           ) : (
             <>
