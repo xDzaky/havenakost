@@ -1,0 +1,42 @@
+import type { Landmark } from "@/types/kost";
+
+export const CAMPUSES: Landmark[] = [
+  { id: "c1", name: "Universitas Negeri Malang (UM)", short: "UM", lat: -7.9619, lng: 112.6177 },
+  { id: "c2", name: "Universitas Brawijaya (UB)", short: "UB", lat: -7.9525, lng: 112.6139 },
+  { id: "c3", name: "UMM Kampus III", short: "UMM III", lat: -7.9214, lng: 112.5993 },
+  { id: "c4", name: "Polinema", short: "Polinema", lat: -7.9467, lng: 112.6157 },
+  { id: "c5", name: "UIN Maulana Malik Ibrahim", short: "UIN", lat: -7.9515, lng: 112.6075 },
+  { id: "c6", name: "ITN Kampus 1", short: "ITN 1", lat: -7.9612, lng: 112.6083 },
+  { id: "c7", name: "ITN Kampus 2", short: "ITN 2", lat: -7.9048, lng: 112.6335 },
+  { id: "c8", name: "Unisma", short: "Unisma", lat: -7.9378, lng: 112.6077 },
+  { id: "c9", name: "Unmer Malang", short: "Unmer", lat: -7.9774, lng: 112.6095 },
+  { id: "c10", name: "UIN Kampus III (Junrejo Batu)", short: "UIN Batu", lat: -7.9061, lng: 112.5678 },
+  { id: "c11", name: "Soekarno-Hatta (Suhat)", short: "Suhat", lat: -7.9439, lng: 112.6225 },
+  { id: "c12", name: "Lowokwaru", short: "Lowokwaru", lat: -7.9478, lng: 112.6164 },
+  { id: "c13", name: "Dinoyo", short: "Dinoyo", lat: -7.9388, lng: 112.6072 },
+  { id: "c14", name: "Dau / Landungsari", short: "Dau", lat: -7.9242, lng: 112.5978 },
+  { id: "c15", name: "Sawojajar", short: "Sawojajar", lat: -7.9746, lng: 112.6602 },
+  { id: "c16", name: "Malang Town Square (Matos)", short: "Matos", lat: -7.9572, lng: 112.6186 },
+  { id: "c17", name: "Mall Olympic Garden (MOG)", short: "MOG", lat: -7.9753, lng: 112.6234 },
+  { id: "c18", name: "Kayutangan Heritage", short: "Kayutangan", lat: -7.9778, lng: 112.6295 },
+  { id: "c19", name: "Stasiun Malang Kotabaru", short: "Stasiun Mlg", lat: -7.9774, lng: 112.6375 },
+  { id: "c20", name: "Alun-alun Kota Malang", short: "Alun-alun", lat: -7.9826, lng: 112.6308 },
+  { id: "c21", name: "Pusat Kota Wisata Batu", short: "Kota Batu", lat: -7.8712, lng: 112.5273 },
+];
+
+export const AREAS = [
+  { name: "Lowokwaru", lat: -7.9478, lng: 112.6164, region: "Kota Malang" },
+  { name: "Dinoyo & MT Haryono", lat: -7.9388, lng: 112.6072, region: "Kota Malang" },
+  { name: "Sukun", lat: -7.9655, lng: 112.6200, region: "Kota Malang" },
+  { name: "Kedungkandang", lat: -7.9750, lng: 112.6500, region: "Kota Malang" },
+  { name: "Sawojajar", lat: -7.9746, lng: 112.6602, region: "Kota Malang" },
+  { name: "Klojen / Pusat Kota", lat: -7.9660, lng: 112.6315, region: "Kota Malang" },
+  { name: "Blimbing", lat: -7.9300, lng: 112.6350, region: "Kota Malang" },
+  { name: "Tlogomas", lat: -7.9312, lng: 112.6021, region: "Kota Malang" },
+  { name: "Ketawanggede", lat: -7.9502, lng: 112.6128, region: "Kota Malang" },
+  { name: "Sumbersari & Sigura-gura", lat: -7.9598, lng: 112.6091, region: "Kota Malang" },
+  { name: "Dau / Landungsari", lat: -7.9242, lng: 112.5978, region: "Kabupaten Malang" },
+  { name: "Karangploso", lat: -7.9065, lng: 112.6318, region: "Kabupaten Malang" },
+  { name: "Singosari", lat: -7.8935, lng: 112.6654, region: "Kabupaten Malang" },
+  { name: "Kota Wisata Batu", lat: -7.8785, lng: 112.5255, region: "Kota Batu" },
+];

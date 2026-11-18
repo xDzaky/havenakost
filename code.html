@@ -1,0 +1,1267 @@
+<!DOCTYPE html><html lang="id"><head></head><body class="font-sans antialiased text-slate-800 bg-slate-50 selection:bg-teal-500 selection:text-white"><svg aria-hidden="true" class="inline-defs-container" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>HavenaKost - Sewa Kost, Coliving &amp; Apartemen Impian</title>
+<!-- Tailwind CSS v3 with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              teal: '#0fa396',
+              tealDark: '#0b7e74',
+              yellow: '#F59E0B',
+              dark: '#1E293B',
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-layout">
+    /* Diagonal cuts for the split banner collage like Rukita */
+    .clip-diagonal-left {
+      clip-path: polygon(0 0, 100% 0, 84% 100%, 0% 100%);
+    }
+    .clip-diagonal-center {
+      clip-path: polygon(16% 0, 100% 0, 84% 100%, 0% 100%);
+    }
+    .clip-diagonal-right {
+      clip-path: polygon(16% 0, 100% 0, 100% 100%, 0% 100%);
+    }
+    @media (max-width: 768px) {
+      .clip-diagonal-left, .clip-diagonal-center, .clip-diagonal-right {
+        clip-path: none;
+      }
+    }
+    /* Custom subtle scrollbar for the kost listing list */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+<!-- BEGIN: NavigationBar -->
+<!-- Top navigation with PapiKost style user pill & brand logo, completely clear center area -->
+<header class="absolute top-0 left-0 w-full z-50 transition-all duration-300">
+<div class="max-w-7xl mx-auto px-6 sm:px-8 py-5 flex items-center justify-between">
+<!-- Brand Logo & Wordmark -->
+<a aria-label="HavenaKost Beranda" class="flex items-center gap-3 group focus:outline-none" href="#"><div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-md group-hover:bg-white/20 transition duration-300"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><div class="flex items-baseline"><span class="text-2xl font-extrabold tracking-tight text-white drop-shadow-md">HavenaKost</span></div></a>
+<!-- Empty Middle Section (Per specification: strictly no other navlinks) -->
+<div class="flex-grow"></div>
+<!-- Right Side: PapiKost Rounded Pill Menu Button (Hamburger + Avatar) -->
+<div class="flex items-center">
+<button aria-label="User Account and Navigation Menu" class="flex items-center gap-3.5 bg-white/95 backdrop-blur-md hover:bg-white text-slate-700 px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 border border-white/60 focus:outline-none focus:ring-2 focus:ring-teal-500" type="button">
+<!-- 3-line Hamburger Menu -->
+<svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+<path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<!-- User Profile Icon Circle -->
+<div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white text-sm shadow-inner">
+<svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+<path clip-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" fill-rule="evenodd"></path>
+</svg>
+</div>
+</button>
+</div>
+</div>
+</header>
+<!-- END: NavigationBar -->
+<!-- BEGIN: HeroSection -->
+<!-- Hero Section styled like Rukita (Bali Coliving Collage with floating pill badges and bottom search bar) -->
+<section class="relative min-h-[660px] lg:min-h-[700px] w-full flex flex-col justify-end bg-slate-900 overflow-hidden pb-12 pt-28">
+<!-- Hero Background Image Collage -->
+<div class="absolute inset-0 z-0 flex select-none pointer-events-none">
+<!-- Left Photo: Warm Aesthetic Bedroom -->
+<div class="relative w-[38%] h-full hidden md:block">
+<img alt="HavenaKost Sunset Road Bedroom" class="w-full h-full object-cover brightness-[0.82]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0mvMiILk-nLE5--LNEE-3DxxpqLhlFQUc24eRW5APrl8R6Lvifqkkw7UQBCOH71fuhNUlBH40GL7pI3SI0GBXRVEA8xzmZhj5aXremicpvTp9eYU-wrmicD7lq7dcYsUDslYMZ3CmDdgSQMgxxwD3sJSlokBgQzapela5YoK3UssfivYc3x5mgvBBSZr7-eN5GV0xZHFxpEIc_dmGIJqcE7-Soqn4czEGfM2It2c">
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40"></div>
+</div>
+<!-- Center Photo: Dramatic Bali Nusa Penida / Kelingking Coastal Cliff -->
+<div class="relative w-full md:w-[40%] h-full">
+<img alt="Bali Coliving Experience View" class="w-full h-full object-cover brightness-[0.78]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBR1ryuSQCy05eEn6RHjVBPfCQxsGwYLucm7n4cNEsVzv16TK0PD6UFn9iIRAQ1H8FTFfnJ5cBhlFfiZbsoiW3stU9-yrT6lG3TsudT6kp0nCppGbpnL4rAs5BnR_1OjqEkXXAjdS1wtKY6MW4DXjifV6SnFTnwmJ5hhnjoWPW6o6eaGZmE3wp5Ex0-7fLL_LmvgH4wf2SNZ0wpI1B3lSrL_bicL2LddwRxLufpyFY">
+<div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/50"></div>
+</div>
+<!-- Right Photo: Cozy Sunlit Coliving Studio Room -->
+<div class="relative w-[34%] h-full hidden md:block">
+<img alt="HavenaKost Mahina Living Bedroom" class="w-full h-full object-cover brightness-[0.82]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3wND0_h2ZMwKlindev5owsLr7wgfAi1ELD6UMrruaeIGw8DjQQIh34ymSmSmSPd95AHFWXldbeLZMaoHaSjbXQnNJn0B0CToTnNGcsCNuTyCSneG30G6xlF7o2_K6qbWpmYEVRMyu0ExYTHymKayK75NjNP3slwVw7vOGWhNa6HCNDisZoLeAGp8mElOdJctJ8ojgagIuEwm4LlO6GKhGmbD3icxEyKVfFzlDlCk">
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40"></div>
+</div>
+</div>
+<!-- Center Hero Promotional Badges and Typography (Rukita Style Overlay) -->
+<div class="relative z-10 max-w-7xl mx-auto px-6 w-full flex flex-col items-center text-center my-auto pb-6">
+<!-- Top Subtitle Promo Pill -->
+<p class="text-xs sm:text-sm font-semibold tracking-widest text-slate-200 uppercase mb-2 drop-shadow">Temukan Kost Nyaman Impianmu Tanpa Ribet</p>
+<!-- Main Regional Banner Header -->
+<h2 class="text-4xl sm:text-6xl font-black text-white tracking-wider mb-6 drop-shadow-lg">KOST SEKITAR MALANG</h2>
+<!-- Floating Property Navigation Badges -->
+<!-- Feature Checklist Badges (Rukita style verified points) -->
+</div>
+<!-- Search Bar & Bottom Title Container -->
+<div class="relative z-20 max-w-6xl mx-auto px-4 sm:px-6 w-full mt-auto">
+<!-- Primary Text Heading (above the search pill as on Rukita) -->
+<div class="mb-4 text-left"><h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-md">Pilihan Kost Terlengkap di Malang</h1><p class="text-base sm:text-lg text-slate-200 font-normal mt-1 drop-shadow">Sewa kost nyaman, strategis, dan terjangkau untuk mahasiswa &amp; pekerja di Malang</p></div>
+<!-- Floating Modern Horizontal Search Bar -->
+<div class="bg-white rounded-2xl md:rounded-full p-2 sm:p-3 shadow-2xl shadow-black/40 border border-white/80 transition-all">
+<form class="flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0" onsubmit="event.preventDefault();">
+<!-- Field 1: Location Input -->
+<div class="w-full md:flex-[1.5] flex items-center px-4 py-2.5">
+<svg class="w-5 h-5 text-slate-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+<path clip-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" fill-rule="evenodd"></path>
+</svg>
+<input class="w-full bg-transparent border-none p-0 text-slate-800 placeholder-slate-400 font-medium text-sm focus:ring-0 focus:outline-none" placeholder="Cari lokasi, nama gedung atau landmark..." type="text">
+</div>
+<!-- Divider -->
+<div class="hidden md:block w-px h-8 bg-slate-200"></div>
+<!-- Field 2: Date Selector -->
+<div class="w-full md:flex-1 flex items-center px-4 py-2.5">
+<svg class="w-5 h-5 text-slate-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<input class="w-full bg-transparent border-none p-0 text-slate-800 placeholder-slate-400 font-medium text-sm focus:ring-0 focus:outline-none cursor-pointer" onfocus="(this.type='date')" placeholder="Pilih tanggal" type="text">
+</div>
+<!-- Divider -->
+<div class="hidden md:block w-px h-8 bg-slate-200"></div>
+<!-- Field 3: Property Type Selector -->
+<div class="w-full md:flex-1 flex items-center justify-between px-4 py-2.5 relative">
+<div class="flex items-center w-full">
+<svg class="w-5 h-5 text-slate-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<select class="w-full bg-transparent border-none p-0 pr-6 text-slate-800 font-medium text-sm focus:ring-0 focus:outline-none cursor-pointer appearance-none"><option value="all">Semua Kost</option><option value="putri">Kost Putri</option><option value="putra">Kost Putra</option><option value="campur">Kost Campur</option></select>
+</div>
+<!-- Custom chevron for dropdown -->
+<svg class="w-4 h-4 text-slate-400 pointer-events-none absolute right-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<!-- Divider -->
+<div class="hidden md:block w-px h-8 bg-slate-200"></div>
+<!-- Field 4: Filter Icon Button -->
+<div class="hidden md:flex items-center px-3">
+<button aria-label="Buka Filter Tambahan" class="p-2 text-slate-600 hover:text-teal-600 hover:bg-slate-100 rounded-full transition-colors" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- Search Action Button (Teal Pill Button) -->
+<div class="w-full md:w-auto p-1">
+<button class="w-full md:w-auto px-7 py-3.5 bg-brand-teal hover:bg-brand-tealDark text-white font-bold rounded-full transition duration-200 flex items-center justify-center gap-2.5 shadow-md shadow-teal-700/30 hover:shadow-lg" type="submit">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Cari Kost</span>
+</button>
+</div>
+</form>
+</div>
+<!-- Carousel Pagination Dots -->
+<div class="flex items-center justify-center gap-2 pt-5">
+<button aria-label="Slide 1" class="w-2.5 h-2.5 rounded-full bg-white transition-all shadow"></button>
+<button aria-label="Slide 2" class="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition-all"></button>
+<button aria-label="Slide 3" class="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition-all"></button>
+<button aria-label="Slide 4" class="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition-all"></button>
+</div>
+</div>
+</section>
+<!-- END: HeroSection -->
+<!-- BEGIN: LocationDiscoverySection -->
+<section class="py-14 sm:py-20 bg-slate-50 border-b border-slate-200" id="location-discovery">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<!-- 1. Section Header -->
+<div class="text-left mb-8">
+<h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+        Temukan Kost di Sekitar Lokasi Tujuan
+      </h2>
+<p class="text-slate-600 max-w-2xl text-base mt-2">
+        Pilih kampus, tempat kerja, atau lokasi favoritmu untuk menemukan kost terdekat.
+      </p>
+</div>
+<!-- 2. Destination Search Controls & Toolbar -->
+<div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/90 mb-8 space-y-4">
+<!-- Search Input + Location Action Buttons -->
+<div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+<!-- Search Input -->
+<div class="relative flex-1">
+<div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-teal-600">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<input class="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 font-medium text-sm focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-100 transition-all outline-none" id="destination-search-input" placeholder="Cari kampus, universitas, kantor, atau tempat..." type="text" value="Universitas Brawijaya (UB)">
+<button aria-label="Cari" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-teal-600 transition-colors" type="button">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- Quick Action Buttons -->
+<div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+<button class="inline-flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl border border-slate-200 transition-colors shadow-sm" type="button">
+<svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+<path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Pilih titik di peta</span>
+</button>
+<button class="inline-flex items-center gap-2 px-4 py-3 bg-white hover:bg-teal-50/60 text-slate-700 hover:text-teal-700 font-semibold text-xs sm:text-sm rounded-xl border border-slate-200 hover:border-teal-300 transition-colors shadow-sm" type="button">
+<svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="3"></circle>
+<path d="M12 2v3m0 14v3M2 12h3m14 0h3" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Gunakan lokasi saya</span>
+</button>
+</div>
+</div>
+<!-- Autocomplete Dropdown Simulator / Quick Chips -->
+<!-- Radius Filter & Active Destination Tag -->
+</div>
+<!-- 3. Two-Column Layout (Desktop ~44% left, ~56% right, h-[720px]) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- A. LEFT COLUMN: Kost Listing Cards with sticky/fixed header -->
+<div class="lg:col-span-5 flex flex-col h-[720px] bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 overflow-hidden">
+<!-- Sticky Header in Left Column -->
+<div class="flex items-center justify-between pb-3.5 border-b border-slate-100 flex-shrink-0">
+<div class="flex items-center gap-2.5">
+<h3 class="font-extrabold text-slate-900 text-base">Kost Terdekat</h3>
+<span class="bg-teal-100 text-teal-800 font-bold text-xs px-2.5 py-0.5 rounded-full">
+              12 kost ditemukan
+            </span>
+</div>
+<div class="relative">
+<select class="text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg px-2.5 py-1.5 border-0 focus:ring-2 focus:ring-teal-500 cursor-pointer">
+<option>Urutkan: Terdekat</option>
+<option>Harga: Terendah</option>
+<option>Harga: Tertinggi</option>
+<option>Rating Tertinggi</option>
+</select>
+</div>
+</div>
+<!-- Scrollable List of Horizontal Cards -->
+<div class="overflow-y-auto space-y-3.5 pt-3.5 pr-1.5 flex-1 custom-scrollbar">
+<!-- Card 1 (Active/Highlighted Marker Linked) -->
+<article class="bg-white hover:bg-slate-50/80 rounded-xl border-2 border-teal-500 shadow-sm p-3 transition-all duration-200 group relative">
+<div class="flex flex-col sm:flex-row gap-3">
+<!-- Left side: Property Image -->
+<div class="relative w-full sm:w-36 h-32 sm:h-28 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+<img alt="Kost Griya Mahasiswa Lowokwaru" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABe8r4vGaZ_3S_xAM8gkp430GBcjyzk8J3up7i0P0lGWVYXnpnpMhCFqMu2IDj1Sb7Ha0vI-Gp1dhcFlvCtKoRaxFE4WweojkZR-swPFld44Aug7i2hVj3YNAgvs_vK53TeuNIWMdePxkz1amd6ykvh4RYcuTqztcbU7tvsUgb0OtD0RwXdT7UBIpY7He-_6B2z3fxS5XG9NdErsmzV9jXmtOMNFRRYDYZ7SOtHrg">
+<span class="absolute top-1.5 left-1.5 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                  Kost Putri
+                </span>
+<span class="absolute bottom-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                  📷 12 foto
+                </span>
+</div>
+<!-- Right side: Info -->
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="text-[11px] text-slate-400 font-medium">Lowokwaru, Malang</span>
+<span class="inline-flex items-center text-[10px] font-bold bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full border border-teal-200">
+                      📍 850 m dari UB
+                    </span>
+</div>
+<h4 class="font-bold text-slate-800 text-sm group-hover:text-teal-600 transition-colors line-clamp-1 mt-0.5">
+                    Kost Griya Mahasiswa Lowokwaru
+                  </h4>
+<p class="text-[11px] text-slate-500 mt-1 line-clamp-1">
+                    Kamar Mandi Dalam · WiFi · AC
+                  </p>
+</div>
+<div class="flex items-center justify-between pt-2 mt-2 border-t border-slate-100">
+<div>
+<div class="text-[10px] text-amber-500 font-bold flex items-center gap-0.5">
+                      ★ 4,8 <span class="text-slate-400 font-normal">(12 ulasan)</span>
+</div>
+<div class="text-xs font-extrabold text-teal-600">
+                      Rp 1.200.000 <span class="text-[10px] text-slate-400 font-normal">/ bln</span>
+</div>
+</div>
+<a class="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm" href="#">
+                    Lihat Detail
+                  </a>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 2 -->
+<article class="bg-white hover:bg-slate-50/80 rounded-xl border border-slate-200 hover:border-teal-300 shadow-sm p-3 transition-all duration-200 group">
+<div class="flex flex-col sm:flex-row gap-3">
+<div class="relative w-full sm:w-36 h-32 sm:h-28 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+<img alt="Kost Nusa Indah UB" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVzC2NrB41CJoIisyoXQCJHE38SALoEJLHuKhAC7s05b_1qoV3C-QZW0aseRPghps27AXlXu-usIAbXFWhpygK8CBbYB1mr7Cpvvv1aUSBAQ5WG0bIKn2YUecwdDXmaLsbiPPXn8PrNv72tVXeEEaEUCNSOLiL6YtY2XgwHOOV15crSIheCej0n7lnzbddQI0JScZRsWeb6GbHWY-w5Gdt0sKKBQK6mOYJeBrvlpI">
+<span class="absolute top-1.5 left-1.5 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                  Kost Putra
+                </span>
+<span class="absolute bottom-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                  📷 8 foto
+                </span>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="text-[11px] text-slate-400 font-medium">Sumbersari, Malang</span>
+<span class="inline-flex items-center text-[10px] font-bold bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full border border-teal-200">
+                      📍 1,2 km dari UB
+                    </span>
+</div>
+<h4 class="font-bold text-slate-800 text-sm group-hover:text-teal-600 transition-colors line-clamp-1 mt-0.5">
+                    Kost Nusa Indah UB
+                  </h4>
+<p class="text-[11px] text-slate-500 mt-1 line-clamp-1">
+                    Water Heater · WiFi · Dapur Bersama
+                  </p>
+</div>
+<div class="flex items-center justify-between pt-2 mt-2 border-t border-slate-100">
+<div>
+<div class="text-[10px] text-amber-500 font-bold flex items-center gap-0.5">
+                      ★ 4,9 <span class="text-slate-400 font-normal">(28 ulasan)</span>
+</div>
+<div class="text-xs font-extrabold text-teal-600">
+                      Rp 950.000 <span class="text-[10px] text-slate-400 font-normal">/ bln</span>
+</div>
+</div>
+<a class="px-3 py-1.5 bg-slate-100 hover:bg-teal-50 text-teal-700 font-bold text-xs rounded-lg transition-colors border border-slate-200" href="#">
+                    Lihat Detail
+                  </a>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 3 -->
+<article class="bg-white hover:bg-slate-50/80 rounded-xl border border-slate-200 hover:border-teal-300 shadow-sm p-3 transition-all duration-200 group">
+<div class="flex flex-col sm:flex-row gap-3">
+<div class="relative w-full sm:w-36 h-32 sm:h-28 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+<img alt="Kost Putri Melati Dinoyo" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMNBN4ucZ1ZmZC0LVZxhKbkVCqd4Ixh1SChhW-bEFws6oPErSyg4t3pmaI5XTUeJ6qTsPoEgnVP_nIRVCtxe1U-4rdxHKxesMfK90AjkmM2s-BGoEWiyxd_BsCHFbdZWwil16W1qjkLGKtX8fYlAnyhQeVcXZZOq2AtxVep-EbRlovgwQyMTJuW6O39PfOYD_4wjvJUdISLPQo2xCfjXJ5wCxV5_BQyzzi83CNqeM">
+<span class="absolute top-1.5 left-1.5 bg-brand-teal text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                  Kost Putri
+                </span>
+<span class="absolute bottom-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                  📷 10 foto
+                </span>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="text-[11px] text-slate-400 font-medium">Dinoyo, Malang</span>
+<span class="inline-flex items-center text-[10px] font-bold bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full border border-teal-200">
+                      📍 1,5 km dari UB
+                    </span>
+</div>
+<h4 class="font-bold text-slate-800 text-sm group-hover:text-teal-600 transition-colors line-clamp-1 mt-0.5">
+                    Kost Putri Melati Dinoyo
+                  </h4>
+<p class="text-[11px] text-slate-500 mt-1 line-clamp-1">
+                    Kamar Mandi Luar · Kasur Springbed · Parkir Motor
+                  </p>
+</div>
+<div class="flex items-center justify-between pt-2 mt-2 border-t border-slate-100">
+<div>
+<div class="text-[10px] text-amber-500 font-bold flex items-center gap-0.5">
+                      ★ 4,7 <span class="text-slate-400 font-normal">(19 ulasan)</span>
+</div>
+<div class="text-xs font-extrabold text-teal-600">
+                      Rp 800.000 <span class="text-[10px] text-slate-400 font-normal">/ bln</span>
+</div>
+</div>
+<a class="px-3 py-1.5 bg-slate-100 hover:bg-teal-50 text-teal-700 font-bold text-xs rounded-lg transition-colors border border-slate-200" href="#">
+                    Lihat Detail
+                  </a>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 4 -->
+<article class="bg-white hover:bg-slate-50/80 rounded-xl border border-slate-200 hover:border-teal-300 shadow-sm p-3 transition-all duration-200 group">
+<div class="flex flex-col sm:flex-row gap-3">
+<div class="relative w-full sm:w-36 h-32 sm:h-28 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+<img alt="HavenKost Soekarno Hatta" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3wND0_h2ZMwKlindev5owsLr7wgfAi1ELD6UMrruaeIGw8DjQQIh34ymSmSmSPd95AHFWXldbeLZMaoHaSjbXQnNJn0B0CToTnNGcsCNuTyCSneG30G6xlF7o2_K6qbWpmYEVRMyu0ExYTHymKayK75NjNP3slwVw7vOGWhNa6HCNDisZoLeAGp8mElOdJctJ8ojgagIuEwm4LlO6GKhGmbD3icxEyKVfFzlDlCk">
+<span class="absolute top-1.5 left-1.5 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                  Kost Eksklusif
+                </span>
+<span class="absolute bottom-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                  📷 15 foto
+                </span>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="text-[11px] text-slate-400 font-medium">Jl. Soekarno Hatta, Lowokwaru</span>
+<span class="inline-flex items-center text-[10px] font-bold bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full border border-teal-200">
+                      📍 1,8 km dari UB
+                    </span>
+</div>
+<h4 class="font-bold text-slate-800 text-sm group-hover:text-teal-600 transition-colors line-clamp-1 mt-0.5">
+                    HavenKost Soekarno Hatta
+                  </h4>
+<p class="text-[11px] text-slate-500 mt-1 line-clamp-1">
+                    Smart Lock · AC · TV Kabel · Rooftop
+                  </p>
+</div>
+<div class="flex items-center justify-between pt-2 mt-2 border-t border-slate-100">
+<div>
+<div class="text-[10px] text-amber-500 font-bold flex items-center gap-0.5">
+                      ★ 4,9 <span class="text-slate-400 font-normal">(42 ulasan)</span>
+</div>
+<div class="text-xs font-extrabold text-teal-600">
+                      Rp 1.500.000 <span class="text-[10px] text-slate-400 font-normal">/ bln</span>
+</div>
+</div>
+<a class="px-3 py-1.5 bg-slate-100 hover:bg-teal-50 text-teal-700 font-bold text-xs rounded-lg transition-colors border border-slate-200" href="#">
+                    Lihat Detail
+                  </a>
+</div>
+</div>
+</div>
+</article>
+<!-- Card 5 -->
+<article class="bg-white hover:bg-slate-50/80 rounded-xl border border-slate-200 hover:border-teal-300 shadow-sm p-3 transition-all duration-200 group">
+<div class="flex flex-col sm:flex-row gap-3">
+<div class="relative w-full sm:w-36 h-32 sm:h-28 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+<img alt="Kost Sigura-gura Asri" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0mvMiILk-nLE5--LNEE-3DxxpqLhlFQUc24eRW5APrl8R6Lvifqkkw7UQBCOH71fuhNUlBH40GL7pI3SI0GBXRVEA8xzmZhj5aXremicpvTp9eYU-wrmicD7lq7dcYsUDslYMZ3CmDdgSQMgxxwD3sJSlokBgQzapela5YoK3UssfivYc3x5mgvBBSZr7-eN5GV0xZHFxpEIc_dmGIJqcE7-Soqn4czEGfM2It2c">
+<span class="absolute top-1.5 left-1.5 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
+                  Kost Campur
+                </span>
+<span class="absolute bottom-1.5 right-1.5 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded flex items-center gap-1">
+                  📷 9 foto
+                </span>
+</div>
+<div class="flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="text-[11px] text-slate-400 font-medium">Bendungan Sigura-gura, Malang</span>
+<span class="inline-flex items-center text-[10px] font-bold bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full border border-teal-200">
+                      📍 1,4 km dari UB
+                    </span>
+</div>
+<h4 class="font-bold text-slate-800 text-sm group-hover:text-teal-600 transition-colors line-clamp-1 mt-0.5">
+                    Kost Sigura-gura Asri
+                  </h4>
+<p class="text-[11px] text-slate-500 mt-1 line-clamp-1">
+                    KM Dalam · Dapur Luas · Parkir Mobil
+                  </p>
+</div>
+<div class="flex items-center justify-between pt-2 mt-2 border-t border-slate-100">
+<div>
+<div class="text-[10px] text-amber-500 font-bold flex items-center gap-0.5">
+                      ★ 4,8 <span class="text-slate-400 font-normal">(16 ulasan)</span>
+</div>
+<div class="text-xs font-extrabold text-teal-600">
+                      Rp 1.100.000 <span class="text-[10px] text-slate-400 font-normal">/ bln</span>
+</div>
+</div>
+<a class="px-3 py-1.5 bg-slate-100 hover:bg-teal-50 text-teal-700 font-bold text-xs rounded-lg transition-colors border border-slate-200" href="#">
+                    Lihat Detail
+                  </a>
+</div>
+</div>
+</div>
+</article>
+</div>
+</div>
+<!-- B. RIGHT COLUMN: Interactive Leaflet / OpenStreetMap Styled Clean Realistic Map -->
+<div class="lg:col-span-7 h-[720px] rounded-2xl border border-slate-200/90 shadow-sm relative overflow-hidden bg-[#eaf0ed] flex flex-col">
+<!-- SVG Vector Map Canvas simulating realistic OpenStreetMap Malang Area -->
+<div class="relative w-full h-full select-none overflow-hidden">
+<svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 700 720">
+<defs>
+<!-- Campus green fill pattern -->
+<pattern height="20" id="campus-pattern" patternUnits="userSpaceOnUse" width="20">
+<rect fill="#d9ebd9" height="20" width="20"></rect>
+<circle cx="10" cy="10" fill="#c3dec3" r="1.5"></circle>
+</pattern>
+<!-- Residential zone fill pattern -->
+<pattern height="16" id="residential-pattern" patternUnits="userSpaceOnUse" width="16">
+<rect fill="#f8fafc" height="16" width="16"></rect>
+<rect fill="#e2e8f0" height="5" rx="1" width="5" x="2" y="2"></rect>
+<rect fill="#e2e8f0" height="5" rx="1" width="5" x="9" y="9"></rect>
+</pattern>
+</defs>
+<!-- Background tile color -->
+<rect fill="#f1f5f3" height="720" width="700"></rect>
+<!-- Landuse Zones (Green parks & urban blocks) -->
+<polygon fill="url(#residential-pattern)" points="120,40 380,30 360,220 110,210" stroke="#e2e8f0"></polygon>
+<polygon fill="url(#residential-pattern)" points="400,60 680,50 670,260 410,240" stroke="#e2e8f0"></polygon>
+<polygon fill="url(#residential-pattern)" points="60,260 300,270 290,480 50,470" stroke="#e2e8f0"></polygon>
+<polygon fill="url(#residential-pattern)" points="360,490 660,470 650,680 340,690" stroke="#e2e8f0"></polygon>
+<!-- Universitas Brawijaya Main Campus Zone -->
+<polygon fill="url(#campus-pattern)" points="260,220 460,210 470,390 270,390" stroke="#86efac" stroke-width="2"></polygon>
+<!-- Malang Town Square Zone -->
+<polygon fill="#fef08a" points="490,260 590,250 595,330 495,335" stroke="#fde047" stroke-width="1.5"></polygon>
+<!-- Metro Waterway / River (Brantas Canal tributary) -->
+<path d="M-20,110 C180,120 220,160 310,130 C420,100 540,170 720,130" fill="none" stroke="#bae6fd" stroke-linecap="round" stroke-width="9"></path>
+<path d="M-20,110 C180,120 220,160 310,130 C420,100 540,170 720,130" fill="none" stroke="#7dd3fc" stroke-linecap="round" stroke-width="5"></path>
+<!-- Primary Secondary Streets Grid -->
+<!-- Jl. Soekarno-Hatta (North-South artery) -->
+<path d="M310,-20 L290,220 L260,420 L220,740" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="14"></path>
+<path d="M310,-20 L290,220 L260,420 L220,740" fill="none" stroke="#fbbf24" stroke-linecap="round" stroke-width="6"></path>
+<!-- Jl. Veteran (Cross campus street) -->
+<path d="M120,380 L620,370" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="14"></path>
+<path d="M120,380 L620,370" fill="none" stroke="#fcd34d" stroke-linecap="round" stroke-width="6"></path>
+<!-- Jl. MT Haryono / Dinoyo -->
+<path d="M-20,230 L270,220 L480,215 L720,240" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="12"></path>
+<path d="M-20,230 L270,220 L480,215 L720,240" fill="none" stroke="#e2e8f0" stroke-linecap="round" stroke-width="5"></path>
+<!-- Jl. Bendungan Sigura-gura -->
+<path d="M140,380 L180,730" fill="none" stroke="#ffffff" stroke-width="10"></path>
+<path d="M140,380 L180,730" fill="none" stroke="#e2e8f0" stroke-width="4"></path>
+<!-- Jl. Gajayana -->
+<path d="M110,210 L140,550" fill="none" stroke="#ffffff" stroke-width="10"></path>
+<path d="M110,210 L140,550" fill="none" stroke="#e2e8f0" stroke-width="4"></path>
+<!-- Jl. Sumbersari -->
+<path d="M260,390 L420,580 L440,740" fill="none" stroke="#ffffff" stroke-width="10"></path>
+<path d="M260,390 L420,580 L440,740" fill="none" stroke="#e2e8f0" stroke-width="4"></path>
+<!-- 3 KM Radius Circle from Universitas Brawijaya -->
+<!-- Destination Center is approx (360, 310) -->
+<circle cx="360" cy="310" fill="#0fa396" fill-opacity="0.10" r="230" stroke="#0fa396" stroke-dasharray="6 6" stroke-width="2.5"></circle>
+<!-- 1 KM Inner Reference ring -->
+<circle cx="360" cy="310" fill="none" opacity="0.6" r="100" stroke="#0fa396" stroke-dasharray="3 3" stroke-width="1.2"></circle>
+<!-- Street / Landmark Labels on Map -->
+<text fill="#15803d" font-size="11" font-weight="700" letter-spacing="0.5" x="370" y="270">KAMPUS UTAMA UB</text>
+<text fill="#854d0e" font-size="10" font-weight="700" x="500" y="295">MATOS (Malang Town Square)</text>
+<text fill="#64748b" font-size="9" font-weight="600" transform="rotate(-1, 360, 365)" x="360" y="365">JL. VETERAN</text>
+<text fill="#64748b" font-size="9" font-weight="600" transform="rotate(-85, 260, 110)" x="260" y="110">JL. SOEKARNO HATTA</text>
+<text fill="#64748b" font-size="9" font-weight="600" x="90" y="215">JL. MT HARYONO (DINOYO)</text>
+<text fill="#64748b" font-size="8.5" font-weight="600" transform="rotate(84, 145, 460)" x="145" y="460">JL. BENDUNGAN SIGURA-GURA</text>
+<text fill="#64748b" font-size="8.5" font-weight="600" x="375" y="475">SUMBERSARI</text>
+</svg>
+<!-- Interactive UI Overlays on Map Canvas -->
+<!-- 1. Destination Marker (UB) -->
+<div class="absolute left-[51%] top-[43%] -translate-x-1/2 -translate-y-1/2 z-30 flex flex-col items-center pointer-events-auto">
+<!-- Pulsing Circle -->
+<span class="absolute -top-1 w-10 h-10 rounded-full bg-teal-500/30 animate-ping"></span>
+<!-- Floating Label -->
+<div class="mb-1 bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-lg border border-teal-400 flex items-center gap-1.5 whitespace-nowrap">
+<span class="w-2 h-2 rounded-full bg-teal-400"></span>
+<span id="map-destination-label">Lokasi Tujuan: Universitas Muhammadiyah Malang (UMM)</span>
+</div>
+<!-- Pin Icon -->
+<div class="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center shadow-xl border-2 border-white">
+<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+<path clip-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" fill-rule="evenodd"></path>
+</svg>
+</div>
+</div>
+<!-- 2. Custom Kost Markers around the radius with price pills -->
+<!-- Marker A: Nusa Indah (Sumbersari) -->
+<div class="absolute left-[57%] top-[62%] -translate-x-1/2 -translate-y-1/2 z-20 group cursor-pointer">
+<button class="bg-white hover:bg-teal-600 text-slate-800 hover:text-white px-2.5 py-1 rounded-full shadow-md border border-slate-200 hover:border-teal-600 font-extrabold text-[11px] transition-all flex items-center gap-1" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-teal-500 group-hover:bg-white"></span>
+              Rp 950 rb
+            </button>
+</div>
+<!-- Marker B: Kost Soekarno Hatta -->
+<div class="absolute left-[39%] top-[24%] -translate-x-1/2 -translate-y-1/2 z-20 group cursor-pointer">
+<button class="bg-white hover:bg-teal-600 text-slate-800 hover:text-white px-2.5 py-1 rounded-full shadow-md border border-slate-200 hover:border-teal-600 font-extrabold text-[11px] transition-all flex items-center gap-1" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500 group-hover:bg-white"></span>
+              Rp 1.5 jt
+            </button>
+</div>
+<!-- Marker C: Melati Dinoyo -->
+<div class="absolute left-[24%] top-[33%] -translate-x-1/2 -translate-y-1/2 z-20 group cursor-pointer">
+<button class="bg-white hover:bg-teal-600 text-slate-800 hover:text-white px-2.5 py-1 rounded-full shadow-md border border-slate-200 hover:border-teal-600 font-extrabold text-[11px] transition-all flex items-center gap-1" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-teal-500 group-hover:bg-white"></span>
+              Rp 800 rb
+            </button>
+</div>
+<!-- Marker D: Sigura-gura Asri -->
+<div class="absolute left-[33%] top-[68%] -translate-x-1/2 -translate-y-1/2 z-20 group cursor-pointer">
+<button class="bg-white hover:bg-teal-600 text-slate-800 hover:text-white px-2.5 py-1 rounded-full shadow-md border border-slate-200 hover:border-teal-600 font-extrabold text-[11px] transition-all flex items-center gap-1" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 group-hover:bg-white"></span>
+              Rp 1.1 jt
+            </button>
+</div>
+<!-- Marker E: De Borobudur (Northeast) -->
+<div class="absolute left-[70%] top-[20%] -translate-x-1/2 -translate-y-1/2 z-20 group cursor-pointer">
+<button class="bg-white hover:bg-teal-600 text-slate-800 hover:text-white px-2.5 py-1 rounded-full shadow-md border border-slate-200 hover:border-teal-600 font-extrabold text-[11px] transition-all flex items-center gap-1" type="button">
+<span class="w-1.5 h-1.5 rounded-full bg-teal-500 group-hover:bg-white"></span>
+              Rp 1.35 jt
+            </button>
+</div>
+<!-- ACTIVE MARKER & Interactive Preview Popup Card (Linked to Card 1: Kost Griya Mahasiswa) -->
+<div class="absolute left-[40%] top-[40%] -translate-x-1/2 -translate-y-full z-40">
+<!-- Popup Card -->
+<div class="bg-white rounded-xl shadow-2xl border border-teal-500/80 p-2.5 w-60 mb-2 transition-all transform animate-in fade-in zoom-in duration-200">
+<div class="relative w-full h-24 rounded-lg overflow-hidden mb-2 bg-slate-100">
+<img alt="Preview Kost Griya Mahasiswa" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABe8r4vGaZ_3S_xAM8gkp430GBcjyzk8J3up7i0P0lGWVYXnpnpMhCFqMu2IDj1Sb7Ha0vI-Gp1dhcFlvCtKoRaxFE4WweojkZR-swPFld44Aug7i2hVj3YNAgvs_vK53TeuNIWMdePxkz1amd6ykvh4RYcuTqztcbU7tvsUgb0OtD0RwXdT7UBIpY7He-_6B2z3fxS5XG9NdErsmzV9jXmtOMNFRRYDYZ7SOtHrg">
+<span class="absolute top-1 left-1 bg-teal-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                  Kost Putri
+                </span>
+<span class="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                  ★ 4,8
+                </span>
+</div>
+<h5 class="font-bold text-slate-800 text-xs truncate">Kost Griya Mahasiswa</h5>
+<p class="text-[10px] text-teal-700 font-semibold flex items-center gap-1 mt-0.5">
+                📍 850 m dari UB
+              </p>
+<div class="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
+<div>
+<span class="text-[11px] font-extrabold text-teal-600">Rp 1.200.000</span>
+<span class="text-[9px] text-slate-400">/bln</span>
+</div>
+<a class="text-[11px] font-bold text-teal-600 hover:text-teal-800 hover:underline" href="#">
+                  Lihat Detail →
+                </a>
+</div>
+<!-- Small triangle pointer -->
+<div class="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-white"></div>
+</div>
+<!-- Active Pin -->
+<div class="mx-auto w-6 h-6 rounded-full bg-teal-600 ring-4 ring-teal-200 text-white flex items-center justify-center shadow-lg">
+<span class="w-2 h-2 rounded-full bg-white"></span>
+</div>
+</div>
+<!-- 3. Floating Map Controls (Zoom, Recenter, Layers, Radius Info) -->
+<!-- Top Left Status Pill -->
+<div class="absolute top-4 left-4 z-20"><button class="bg-white/95 backdrop-blur-sm border border-slate-200 hover:border-teal-500 hover:bg-white px-3.5 py-1.5 shadow-md text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500 rounded-lg" type="button"><span>Radius 3 km</span><svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"></path></svg></button></div>
+<!-- Top Right Layer Selector -->
+<div class="absolute top-4 right-4 z-20">
+<div class="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-md p-1 flex items-center text-xs font-semibold text-slate-600">
+<button class="px-2.5 py-1 rounded-lg bg-teal-600 text-white font-bold transition-all shadow-sm" type="button">
+                Peta Standar
+              </button>
+<button class="px-2.5 py-1 rounded-lg hover:bg-slate-100 transition-all" type="button">
+                Satelit
+              </button>
+</div>
+</div>
+<!-- Bottom Right Floating Controls (+ / - / GPS Recenter) -->
+<div class="absolute bottom-12 right-4 z-20 flex flex-col gap-2">
+<!-- Zoom In/Out -->
+<div class="bg-white/95 backdrop-blur-sm rounded-xl border border-slate-200 shadow-md overflow-hidden flex flex-col">
+<button aria-label="Perbesar Peta" class="w-9 h-9 flex items-center justify-center text-slate-700 hover:bg-slate-100 font-bold border-b border-slate-200 transition-colors" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+<button aria-label="Perkecil Peta" class="w-9 h-9 flex items-center justify-center text-slate-700 hover:bg-slate-100 font-bold transition-colors" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 12H4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+</div>
+<!-- Recenter GPS -->
+<button aria-label="Pusatkan ke Tujuan" class="w-9 h-9 bg-white/95 backdrop-blur-sm rounded-xl border border-slate-200 shadow-md flex items-center justify-center text-slate-700 hover:text-teal-600 hover:bg-slate-100 transition-colors" type="button">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="3"></circle>
+<path d="M12 2v3m0 14v3M2 12h3m14 0h3" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+<!-- 4. Subtle Helper Banner at Bottom -->
+<div class="absolute bottom-3 left-4 right-20 sm:right-auto z-20">
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- END: LocationDiscoverySection -->
+<!-- BEGIN: CampusDiscoverySection -->
+<section class="py-14 sm:py-20 bg-white border-b border-slate-200" id="campus-discovery">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<!-- Section Header -->
+<div class="text-left mb-8">
+<h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+      Jelajahi Kost Dekat Kampus Favorit
+    </h2>
+<p class="text-slate-600 max-w-2xl text-base mt-2">
+      Temukan pilihan kost strategis di sekitar kampus favoritmu di Malang.
+    </p>
+</div>
+<!-- Campus Cards Grid -->
+<div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"><!-- Campus 1: UB -->
+<button type="button" onclick="selectCampus('Universitas Brawijaya (UB)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-amber-600" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"></circle>
+        <path d="M12 4l1.5 3.5 3.8.3-2.9 2.5.9 3.7-3.3-2-3.3 2 .9-3.7-2.9-2.5 3.8-.3z" fill="#D97706"></path>
+        <circle cx="12" cy="12" r="2.5" fill="#1E3A8A"></circle>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UB</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Lowokwaru, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 2: UM -->
+<button type="button" onclick="selectCampus('Universitas Negeri Malang (UM)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-blue-700" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.5"></circle>
+        <path d="M12 5l5 3v5c0 3-2.5 5.5-5 7-2.5-1.5-5-4-5-7V8l5-3z" fill="#1D4ED8"></path>
+        <circle cx="12" cy="12" r="2" fill="#FDE047"></circle>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UM</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Klojen, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 3: UIN Maliki -->
+<button type="button" onclick="selectCampus('UIN Maulana Malik Ibrahim Malang')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-emerald-700" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#D1FAE5" stroke="#047857" stroke-width="1.5"></circle>
+        <path d="M12 6c-2 2-3 4-3 6a3 3 0 006 0c0-2-1-4-3-6z" fill="#047857"></path>
+        <path d="M7 16h10" stroke="#D97706" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UIN Maliki</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Dinoyo, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 4: POLINEMA -->
+<button type="button" onclick="selectCampus('Politeknik Negeri Malang (POLINEMA)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"></circle>
+        <path d="M8 7h8v10H8z" fill="#F59E0B"></path>
+        <path d="M12 9l3 6H9l3-6z" fill="#1E40AF"></path>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">Polinema</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Soekarno-Hatta, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 5: UMM -->
+<button type="button" onclick="selectCampus('Universitas Muhammadiyah Malang (UMM)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-rose-700" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#FFE4E6" stroke="#BE123C" stroke-width="1.5"></circle>
+        <path d="M12 5l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6z" fill="#BE123C"></path>
+        <circle cx="12" cy="12" r="1.8" fill="#FFFFFF"></circle>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UMM</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Tlogomas, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 6: UNISMA -->
+<button type="button" onclick="selectCampus('Universitas Islam Malang (UNISMA)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-emerald-800" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#ECFDF5" stroke="#065F46" stroke-width="1.5"></circle>
+        <circle cx="12" cy="12" r="5" fill="#047857"></circle>
+        <path d="M12 7v10M7 12h10" stroke="#FFFFFF" stroke-width="1.5"></path>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UNISMA</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Dinoyo, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 7: ITN -->
+<button type="button" onclick="selectCampus('Institut Teknologi Nasional Malang (ITN)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-cyan-50 border border-cyan-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-cyan-700" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#CFFAFE" stroke="#0E7490" stroke-width="1.5"></circle>
+        <path d="M12 6l5 10H7l5-10z" fill="#0891B2"></path>
+        <circle cx="12" cy="13" r="1.5" fill="#FEF08A"></circle>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">ITN Malang</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Sigura-gura, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 8: Lihat Semua Kampus (Mamikos 'Lihat semua ->' clean style) -->
+<button type="button" id="toggle-more-campuses-btn" onclick="toggleMoreCampuses()" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center min-w-0">
+    <span class="font-bold text-slate-900 text-base group-hover:text-teal-700 transition-colors" id="toggle-label-text">Lihat semua</span>
+  </div>
+  <svg id="toggle-chevron-icon" class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button></div>
+<!-- Expandable Extra Campuses Container -->
+<div class="hidden grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 pt-4 border-t border-slate-100 transition-all duration-300" id="extra-campuses-panel"><!-- Campus 1: UB -->
+<button type="button" onclick="selectCampus('Universitas Brawijaya (UB)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-amber-600" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"></circle>
+        <path d="M12 4l1.5 3.5 3.8.3-2.9 2.5.9 3.7-3.3-2-3.3 2 .9-3.7-2.9-2.5 3.8-.3z" fill="#D97706"></path>
+        <circle cx="12" cy="12" r="2.5" fill="#1E3A8A"></circle>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UB</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Lowokwaru, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 2: UM -->
+<button type="button" onclick="selectCampus('Universitas Negeri Malang (UM)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-blue-700" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="1.5"></circle>
+        <path d="M12 5l5 3v5c0 3-2.5 5.5-5 7-2.5-1.5-5-4-5-7V8l5-3z" fill="#1D4ED8"></path>
+        <circle cx="12" cy="12" r="2" fill="#FDE047"></circle>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UM</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Klojen, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 3: UIN Maliki -->
+<button type="button" onclick="selectCampus('UIN Maulana Malik Ibrahim Malang')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-emerald-700" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#D1FAE5" stroke="#047857" stroke-width="1.5"></circle>
+        <path d="M12 6c-2 2-3 4-3 6a3 3 0 006 0c0-2-1-4-3-6z" fill="#047857"></path>
+        <path d="M7 16h10" stroke="#D97706" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UIN Maliki</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Dinoyo, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 4: POLINEMA -->
+<button type="button" onclick="selectCampus('Politeknik Negeri Malang (POLINEMA)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"></circle>
+        <path d="M8 7h8v10H8z" fill="#F59E0B"></path>
+        <path d="M12 9l3 6H9l3-6z" fill="#1E40AF"></path>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">Polinema</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Soekarno-Hatta, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 5: UMM -->
+<button type="button" onclick="selectCampus('Universitas Muhammadiyah Malang (UMM)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-rose-700" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#FFE4E6" stroke="#BE123C" stroke-width="1.5"></circle>
+        <path d="M12 5l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6z" fill="#BE123C"></path>
+        <circle cx="12" cy="12" r="1.8" fill="#FFFFFF"></circle>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UMM</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Tlogomas, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 6: UNISMA -->
+<button type="button" onclick="selectCampus('Universitas Islam Malang (UNISMA)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-emerald-800" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#ECFDF5" stroke="#065F46" stroke-width="1.5"></circle>
+        <circle cx="12" cy="12" r="5" fill="#047857"></circle>
+        <path d="M12 7v10M7 12h10" stroke="#FFFFFF" stroke-width="1.5"></path>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">UNISMA</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Dinoyo, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 7: ITN -->
+<button type="button" onclick="selectCampus('Institut Teknologi Nasional Malang (ITN)')" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50/80 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center gap-3.5 min-w-0">
+    <div class="w-12 h-12 rounded-full bg-cyan-50 border border-cyan-200 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-2">
+      <svg class="w-full h-full text-cyan-700" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10" fill="#CFFAFE" stroke="#0E7490" stroke-width="1.5"></circle>
+        <path d="M12 6l5 10H7l5-10z" fill="#0891B2"></path>
+        <circle cx="12" cy="13" r="1.5" fill="#FEF08A"></circle>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <div class="font-bold text-slate-900 text-base leading-snug group-hover:text-teal-700 transition-colors">ITN Malang</div>
+      <div class="text-xs text-slate-500 truncate mt-0.5">Sigura-gura, Malang</div>
+    </div>
+  </div>
+  <svg class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button>
+
+<!-- Campus 8: Lihat Semua Kampus (Mamikos 'Lihat semua ->' clean style) -->
+<button type="button" id="toggle-more-campuses-btn" onclick="toggleMoreCampuses()" class="group flex items-center justify-between p-4 sm:p-5 bg-white hover:bg-slate-50 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 text-left cursor-pointer">
+  <div class="flex items-center min-w-0">
+    <span class="font-bold text-slate-900 text-base group-hover:text-teal-700 transition-colors" id="toggle-label-text">Lihat semua</span>
+  </div>
+  <svg id="toggle-chevron-icon" class="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+  </svg>
+</button></div>
+</div>
+</section>
+<!-- END: CampusDiscoverySection -->
+<!-- BEGIN: RecommendedSection (4 Cards Layout) -->
+<section class="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<!-- Section Title & Subtitle -->
+<div class="text-center mb-12">
+<h2 class="text-3xl sm:text-4xl font-extrabold text-slate-800 tracking-tight">
+      Rekomendasi Kost Untukmu
+    </h2>
+
+<p class="text-slate-500 mt-3 text-base max-w-2xl mx-auto">
+      Pilihan kost pilihan dengan lokasi strategis dan informasi lengkap untuk membantu menemukan tempat tinggal yang tepat.
+    </p>
+</div>
+<!-- Property Cards Grid: Desktop 4 cards in a single row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Card 1: Kost Griya Mahasiswa -->
+<article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-200 flex flex-col group">
+<div class="relative overflow-hidden aspect-[4/3] bg-slate-100">
+<img alt="Kost Griya Mahasiswa" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABe8r4vGaZ_3S_xAM8gkp430GBcjyzk8J3up7i0P0lGWVYXnpnpMhCFqMu2IDj1Sb7Ha0vI-Gp1dhcFlvCtKoRaxFE4WweojkZR-swPFld44Aug7i2hVj3YNAgvs_vK53TeuNIWMdePxkz1amd6ykvh4RYcuTqztcbU7tvsUgb0OtD0RwXdT7UBIpY7He-_6B2z3fxS5XG9NdErsmzV9jXmtOMNFRRYDYZ7SOtHrg">
+<span class="absolute top-3 left-3 bg-brand-teal text-white text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">Kost Putri</span>
+<button aria-label="Favoritkan Kost" class="favorite-btn absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-rose-500 shadow flex items-center justify-center transition-all" onclick="toggleFavorite(this)">
+<svg class="w-4 h-4 fill-none stroke-current" stroke-width="2" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+<span class="absolute bottom-2.5 left-3 bg-slate-900/75 backdrop-blur-sm text-amber-400 text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">★ 4.8 <span class="text-slate-300 font-normal">(12)</span></span>
+</div>
+<div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center text-xs text-slate-400 mb-1.5 truncate">
+<svg class="w-3.5 h-3.5 mr-1 text-slate-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path clip-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" fill-rule="evenodd"></path></svg>
+<span class="truncate">Lowokwaru, Malang</span>
+</div>
+<h3 class="text-base font-bold text-slate-900 group-hover:text-brand-teal transition-colors line-clamp-1">Kost Griya Mahasiswa</h3>
+<div class="flex flex-wrap gap-1.5 mt-2.5">
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">WiFi</span>
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">AC</span>
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">KM Dalam</span>
+</div>
+</div>
+<div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+<div class="min-w-0">
+<p class="text-[10px] text-slate-400 font-medium">Mulai dari</p>
+<p class="text-sm sm:text-base font-extrabold text-teal-600 truncate">Rp 1.200.000 <span class="text-[10px] text-slate-400 font-normal">/ bln</span></p>
+</div>
+<a class="px-3 py-1.5 bg-slate-50 hover:bg-teal-50 text-teal-700 font-bold text-xs rounded-lg transition-colors border border-slate-200 flex-shrink-0" href="#">Lihat Detail</a>
+</div>
+</div>
+</article>
+<!-- Card 2: Kost Nusa Indah -->
+<article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-200 flex flex-col group">
+<div class="relative overflow-hidden aspect-[4/3] bg-slate-100">
+<img alt="Kost Nusa Indah" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVzC2NrB41CJoIisyoXQCJHE38SALoEJLHuKhAC7s05b_1qoV3C-QZW0aseRPghps27AXlXu-usIAbXFWhpygK8CBbYB1mr7Cpvvv1aUSBAQ5WG0bIKn2YUecwdDXmaLsbiPPXn8PrNv72tVXeEEaEUCNSOLiL6YtY2XgwHOOV15crSIheCej0n7lnzbddQI0JScZRsWeb6GbHWY-w5Gdt0sKKBQK6mOYJeBrvlpI">
+<span class="absolute top-3 left-3 bg-indigo-600 text-white text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">Kost Putra</span>
+<button aria-label="Favoritkan Kost" class="favorite-btn absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-rose-500 shadow flex items-center justify-center transition-all" onclick="toggleFavorite(this)">
+<svg class="w-4 h-4 fill-none stroke-current" stroke-width="2" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+<span class="absolute bottom-2.5 left-3 bg-slate-900/75 backdrop-blur-sm text-amber-400 text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">★ 4.7 <span class="text-slate-300 font-normal">(8)</span></span>
+</div>
+<div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center text-xs text-slate-400 mb-1.5 truncate">
+<svg class="w-3.5 h-3.5 mr-1 text-slate-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path clip-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" fill-rule="evenodd"></path></svg>
+<span class="truncate">Sumbersari, Malang</span>
+</div>
+<h3 class="text-base font-bold text-slate-900 group-hover:text-brand-teal transition-colors line-clamp-1">Kost Nusa Indah</h3>
+<div class="flex flex-wrap gap-1.5 mt-2.5">
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">WiFi</span>
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Dapur Bersama</span>
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Parkir</span>
+</div>
+</div>
+<div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+<div class="min-w-0">
+<p class="text-[10px] text-slate-400 font-medium">Mulai dari</p>
+<p class="text-sm sm:text-base font-extrabold text-teal-600 truncate">Rp 950.000 <span class="text-[10px] text-slate-400 font-normal">/ bln</span></p>
+</div>
+<a class="px-3 py-1.5 bg-slate-50 hover:bg-teal-50 text-teal-700 font-bold text-xs rounded-lg transition-colors border border-slate-200 flex-shrink-0" href="#">Lihat Detail</a>
+</div>
+</div>
+</article>
+<!-- Card 3: Kost Putri Melati -->
+<article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-200 flex flex-col group">
+<div class="relative overflow-hidden aspect-[4/3] bg-slate-100">
+<img alt="Kost Putri Melati" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMNBN4ucZ1ZmZC0LVZxhKbkVCqd4Ixh1SChhW-bEFws6oPErSyg4t3pmaI5XTUeJ6qTsPoEgnVP_nIRVCtxe1U-4rdxHKxesMfK90AjkmM2s-BGoEWiyxd_BsCHFbdZWwil16W1qjkLGKtX8fYlAnyhQeVcXZZOq2AtxVep-EbRlovgwQyMTJuW6O39PfOYD_4wjvJUdISLPQo2xCfjXJ5wCxV5_BQyzzi83CNqeM">
+<span class="absolute top-3 left-3 bg-brand-teal text-white text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">Kost Putri</span>
+<button aria-label="Favoritkan Kost" class="favorite-btn absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-rose-500 shadow flex items-center justify-center transition-all" onclick="toggleFavorite(this)">
+<svg class="w-4 h-4 fill-none stroke-current" stroke-width="2" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+<span class="absolute bottom-2.5 left-3 bg-slate-900/75 backdrop-blur-sm text-amber-400 text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">★ 4.9 <span class="text-slate-300 font-normal">(15)</span></span>
+</div>
+<div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center text-xs text-slate-400 mb-1.5 truncate">
+<svg class="w-3.5 h-3.5 mr-1 text-slate-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path clip-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" fill-rule="evenodd"></path></svg>
+<span class="truncate">Dinoyo, Malang</span>
+</div>
+<h3 class="text-base font-bold text-slate-900 group-hover:text-brand-teal transition-colors line-clamp-1">Kost Putri Melati</h3>
+<div class="flex flex-wrap gap-1.5 mt-2.5">
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">WiFi</span>
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">KM Dalam</span>
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Laundry</span>
+</div>
+</div>
+<div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+<div class="min-w-0">
+<p class="text-[10px] text-slate-400 font-medium">Mulai dari</p>
+<p class="text-sm sm:text-base font-extrabold text-teal-600 truncate">Rp 800.000 <span class="text-[10px] text-slate-400 font-normal">/ bln</span></p>
+</div>
+<a class="px-3 py-1.5 bg-slate-50 hover:bg-teal-50 text-teal-700 font-bold text-xs rounded-lg transition-colors border border-slate-200 flex-shrink-0" href="#">Lihat Detail</a>
+</div>
+</div>
+</article>
+<!-- Card 4: Kost Harmoni Residence -->
+<article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-200 flex flex-col group">
+<div class="relative overflow-hidden aspect-[4/3] bg-slate-100">
+<img alt="Kost Harmoni Residence" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3wND0_h2ZMwKlindev5owsLr7wgfAi1ELD6UMrruaeIGw8DjQQIh34ymSmSmSPd95AHFWXldbeLZMaoHaSjbXQnNJn0B0CToTnNGcsCNuTyCSneG30G6xlF7o2_K6qbWpmYEVRMyu0ExYTHymKayK75NjNP3slwVw7vOGWhNa6HCNDisZoLeAGp8mElOdJctJ8ojgagIuEwm4LlO6GKhGmbD3icxEyKVfFzlDlCk">
+<span class="absolute top-3 left-3 bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">Kost Eksklusif</span>
+<button aria-label="Favoritkan Kost" class="favorite-btn absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-500 hover:text-rose-500 shadow flex items-center justify-center transition-all" onclick="toggleFavorite(this)">
+<svg class="w-4 h-4 fill-none stroke-current" stroke-width="2" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</button>
+<span class="absolute bottom-2.5 left-3 bg-slate-900/75 backdrop-blur-sm text-amber-400 text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">★ 4.8 <span class="text-slate-300 font-normal">(20)</span></span>
+</div>
+<div class="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+<div>
+<div class="flex items-center text-xs text-slate-400 mb-1.5 truncate">
+<svg class="w-3.5 h-3.5 mr-1 text-slate-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path clip-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" fill-rule="evenodd"></path></svg>
+<span class="truncate">Tlogomas, Malang</span>
+</div>
+<h3 class="text-base font-bold text-slate-900 group-hover:text-brand-teal transition-colors line-clamp-1">Kost Harmoni Residence</h3>
+<div class="flex flex-wrap gap-1.5 mt-2.5">
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">AC</span>
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">WiFi</span>
+<span class="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Parkir Motor</span>
+</div>
+</div>
+<div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+<div class="min-w-0">
+<p class="text-[10px] text-slate-400 font-medium">Mulai dari</p>
+<p class="text-sm sm:text-base font-extrabold text-teal-600 truncate">Rp 1.500.000 <span class="text-[10px] text-slate-400 font-normal">/ bln</span></p>
+</div>
+<a class="px-3 py-1.5 bg-slate-50 hover:bg-teal-50 text-teal-700 font-bold text-xs rounded-lg transition-colors border border-slate-200 flex-shrink-0" href="#">Lihat Detail</a>
+</div>
+</div>
+</article>
+</div>
+<!-- Bottom Centered Action -->
+<div class="mt-12 text-center">
+<a class="inline-flex items-center gap-2 px-8 py-3.5 bg-white border-2 border-slate-200 hover:border-brand-teal text-slate-700 hover:text-teal-700 font-bold rounded-full transition-all duration-200 shadow-sm hover:shadow" href="#">
+<span>Jelajahi Semua Kost</span>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+<path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</a>
+</div>
+</section>
+<!-- END: RecommendedSection -->
+<!-- BEGIN: OwnerCTASection -->
+<section class="py-12 bg-slate-50 border-t border-slate-200/80">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="relative rounded-3xl overflow-hidden bg-white border border-slate-200/80 shadow-lg">
+<!-- Background property image -->
+<div class="absolute inset-0 z-0">
+<img alt="Kost Property Havena" class="w-full h-full object-cover object-center" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVCeXeVRSVgYozafAyH00jI_vSk70pviXDzUJ1mYTNYpsaJBT4PRd4cEp5FOONJrNYXp3ew0uZXRMKmXN5JLoXeYCK-W9p6nGSve1iGr5rlhnNWmM35m2ADH4dPgmWLasS64K8CeICCPG-_osck_AXcZGawARzXvKZENyXqGBOYhPGR7RKPWZgmfiD7i0yUQXF_YiWd7ouL41ruazrIt6LqLZsFJbev5ngpE5iYHk">
+<div class="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-teal-50/60"></div>
+</div>
+<!-- Content Container -->
+<div class="relative z-10 p-8 sm:p-12 lg:p-16 max-w-3xl">
+<!-- Eyebrow Badge -->
+<span class="inline-block text-xs font-bold uppercase tracking-widest text-teal-600 mb-4">Untuk Pemilik Kost</span>
+<!-- Main Heading -->
+<h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-4">
+Punya Kost di Malang?<br class="hidden sm:inline"> Temukan Lebih Banyak Calon Penghuni.
+</h2>
+<!-- Description -->
+<p class="text-slate-600 text-base sm:text-lg mb-8 leading-relaxed">
+Promosikan properti kost-mu melalui HavenaKost. Kelola informasi, foto, harga, dan ketersediaan kamar dengan lebih mudah dalam satu platform.
+</p>
+<!-- 3 Mini Perks / Highlights -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-9">
+
+
+
+</div>
+<!-- CTA Buttons & Links -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+<a class="px-8 py-3.5 bg-brand-teal hover:bg-brand-tealDark text-white font-bold text-sm sm:text-base rounded-full shadow-lg shadow-teal-700/30 hover:shadow-teal-700/50 hover:scale-[1.02] transition-all flex items-center gap-2" href="#">
+<span>Daftarkan Kost Sekarang</span>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+<path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</a>
+<a class="text-slate-700 hover:text-teal-600 font-semibold text-sm transition-colors flex items-center gap-1.5 py-2" href="#">
+<span>Sudah memiliki akun? Masuk ke Dashboard</span>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- END: OwnerCTASection -->
+<!-- BEGIN: FloatingChatWidget -->
+<!-- Help floating action button as seen in bottom right corner of PapiKost -->
+<aside class="fixed bottom-6 right-6 z-40">
+<button aria-label="Tanya Havena AI Kost Assistant" class="h-12 px-5 bg-teal-600 hover:bg-teal-700 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2.5 border border-teal-400"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"></path></svg><span class="text-sm font-bold tracking-wide">Tanya AI</span></button>
+</aside>
+<!-- END: FloatingChatWidget -->
+<!-- BEGIN: Footer -->
+<footer class="bg-slate-900 text-slate-400 text-sm py-8 border-t border-slate-800">
+<div class="max-w-7xl mx-auto px-6 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+<p>© 2026 HavenaKost. Seluruh Hak Cipta Dilindungi.</p>
+<div class="flex gap-6">
+<a class="hover:text-white transition" href="#">Kebijakan Privasi</a>
+<a class="hover:text-white transition" href="#">Syarat &amp; Ketentuan</a>
+<a class="hover:text-white transition" href="#">Pusat Bantuan</a>
+</div>
+</div>
+</footer>
+<!-- END: Footer -->
+<!-- Interactive Script for Smooth Scroll & Campus Filtering -->
+<script>
+  function selectCampus(campusName) {
+    const searchInput = document.getElementById('destination-search-input');
+    const mapLabel = document.getElementById('map-destination-label');
+    const locationSection = document.getElementById('location-discovery');
+    
+    if (searchInput) {
+      searchInput.value = campusName;
+      // Visual feedback highlight
+      searchInput.classList.add('ring-2', 'ring-teal-500', 'bg-teal-50');
+      setTimeout(() => {
+        searchInput.classList.remove('ring-2', 'ring-teal-500', 'bg-teal-50');
+      }, 1500);
+    }
+    
+    if (mapLabel) {
+      mapLabel.textContent = 'Lokasi Tujuan: ' + campusName;
+    }
+    
+    if (locationSection) {
+      locationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function toggleMoreCampuses() {
+    const extraPanel = document.getElementById('extra-campuses-panel');
+    const toggleLabel = document.getElementById('toggle-label-text');
+    const toggleChevron = document.getElementById('toggle-chevron-icon');
+    
+    if (extraPanel) {
+      const isHidden = extraPanel.classList.contains('hidden');
+      if (isHidden) {
+        extraPanel.classList.remove('hidden');
+        if (toggleLabel) toggleLabel.textContent = 'Sembunyikan';
+        if (toggleChevron) toggleChevron.style.transform = 'rotate(90deg)';
+      } else {
+        extraPanel.classList.add('hidden');
+        if (toggleLabel) toggleLabel.textContent = '+3 Kampus Lainnya';
+        if (toggleChevron) toggleChevron.style.transform = 'rotate(0deg)';
+      }
+    }
+  }
+
+  function toggleFavorite(btn) {
+    const svg = btn.querySelector('svg');
+    if (svg) {
+      const isFavorited = svg.classList.contains('fill-rose-500');
+      if (isFavorited) {
+        svg.classList.remove('fill-rose-500', 'text-rose-500');
+        svg.classList.add('fill-none', 'stroke-current');
+      } else {
+        svg.classList.remove('fill-none');
+        svg.classList.add('fill-rose-500', 'text-rose-500');
+      }
+    }
+  }
+</script>
+
+
+</body></html>
