@@ -59,32 +59,7 @@ export default function OwnerDashboard() {
 
   // Responsive mobile drawer state
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("havena_session");
-      if (!stored) {
-        router.replace("/login");
-        return;
-      }
-      const parsed = JSON.parse(stored);
-      if (parsed.role !== "owner" && parsed.role !== "admin") {
-        router.replace("/login");
-        return;
-      }
-      setCurrentUser(parsed);
-      setIsLoadingAuth(false);
-    } catch (e) {
-      router.replace("/login");
-    }
-  }, [router]);
-
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem("havena_session");
-    } catch (e) {}
-    router.replace("/login");
-  };
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   const [activeTab, setActiveTab] = useState<
     "dash" | "listings" | "reviews" | "finance" | "subs" | "notif" | "profile"
@@ -100,26 +75,24 @@ export default function OwnerDashboard() {
     }
   }, []);
 
-  // Account status
-  const [approvalStatus] = useState<
+  // Account status from real database
+  const [approvalStatus, setApprovalStatus] = useState<
     "pending" | "approved" | "rejected" | "suspended"
-  >("approved");
-  const [rejectionReason] = useState(
-    "Data KTP dan izin usaha perlu dilengkapi kembali.",
-  );
+  >("pending");
+  const [rejectionReason, setRejectionReason] = useState("");
 
   // Map and Location references
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  // Profile data with Google Maps coordinates
+  // Profile data from database
   const [profile, setProfile] = useState({
-    fullName: "Ratna Kusuma Dewi",
-    businessName: "Griya Cendekia Management",
-    phone: "6281234567890",
-    email: "ratna.kusuma@gmail.com",
-    address: "Jl. Bendungan Sigura-gura No. 14, Lowokwaru, Kota Malang",
+    fullName: "",
+    businessName: "",
+    phone: "",
+    email: "",
+    address: "",
     latitude: -7.9525,
     longitude: 112.6135,
     googleMapsUrl: "https://www.google.com/maps?q=-7.9525,112.6135",
@@ -129,6 +102,124 @@ export default function OwnerDashboard() {
   const [isLocating, setIsLocating] = useState(false);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Real Database States
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{
+    id: string;
+    status: string;
+    planName: string;
+    planCode: string;
+    listingQuota: string;
+    startDate: string;
+    endDate: string;
+    daysRemaining: number;
+  } | null>(null);
+  const [dueDates, setDueDates] = useState<
+    {
+      id: string;
+      tenantName: string;
+      roomCode: string;
+      roomName?: string | null;
+      kostName: string;
+      monthlyPrice: number;
+      checkOutDate?: string | null;
+      dueText: string;
+      daysUntilDue: number;
+    }[]
+  >([]);
+  const [dailyIncome30Days, setDailyIncome30Days] = useState<
+    { date: string; total: number }[]
+  >([]);
+  const [kpi, setKpi] = useState({
+    activeListings: 0,
+    totalListings: 0,
+    totalRooms: 0,
+    availableRooms: 0,
+    occupiedRooms: 0,
+    occupancyRate: 0,
+    totalReviews: 0,
+    pendingReviewsCount: 0,
+    totalIncome: 0,
+    totalExpense: 0,
+    netBalance: 0,
+  });
+
+  // Fetch all live data from database via unified API
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setIsLoadingData(true);
+      const res = await fetch("/api/owner/dashboard", { cache: "no-store" });
+      if (!res.ok) {
+        if (res.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        throw new Error("Gagal memuat data database");
+      }
+      const json = await res.json();
+      if (json.data) {
+        const d = json.data;
+        if (d.profile) {
+          setProfile((prev) => ({
+            ...prev,
+            fullName: d.profile.fullName || prev.fullName,
+            businessName: d.profile.businessName || prev.businessName,
+            phone: d.profile.phone || prev.phone,
+            email: d.profile.email || prev.email,
+            address: d.profile.address || prev.address,
+            latitude: d.profile.latitude || prev.latitude,
+            longitude: d.profile.longitude || prev.longitude,
+            googleMapsUrl: `https://www.google.com/maps?q=${d.profile.latitude || -7.9525},${d.profile.longitude || 112.6135}`,
+          }));
+          setApprovalStatus(d.profile.approvalStatus || "pending");
+          setRejectionReason(d.profile.rejectionReason || "");
+        }
+        if (d.kpi) setKpi(d.kpi);
+        if (d.listings) setListings(d.listings);
+        if (d.reviews) setReviews(d.reviews);
+        if (d.transactions) setTransactions(d.transactions);
+        if (d.notifications) setNotifications(d.notifications);
+        if (d.subscription) setSubscriptionInfo(d.subscription);
+        if (d.dueDates) setDueDates(d.dueDates);
+        if (d.dailyIncome30Days) setDailyIncome30Days(d.dailyIncome30Days);
+      }
+    } catch (err) {
+      console.error("Error loading owner dashboard data:", err);
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("havena_session");
+      if (!stored) {
+        router.replace("/login");
+        return;
+      }
+      const parsed = JSON.parse(stored);
+      if (parsed.role !== "owner" && parsed.role !== "admin") {
+        router.replace("/login");
+        return;
+      }
+      setCurrentUser(parsed);
+      setIsLoadingAuth(false);
+      fetchDashboardData();
+    } catch (e) {
+      router.replace("/login");
+    }
+  }, [router, fetchDashboardData]);
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("havena_session");
+    } catch (e) {}
+    router.replace("/login");
+  };
 
   // Restore saved profile & maps coordinates from local storage
   useEffect(() => {
@@ -371,153 +462,6 @@ export default function OwnerDashboard() {
     };
   }, []);
 
-  // Listings state
-  const [listings, setListings] = useState<Listing[]>([
-    {
-      id: "k-1",
-      name: "Kost Griya Cendekia Syariah",
-      kost_type: "putri",
-      price_monthly: 1150000,
-      available_rooms: 2,
-      total_rooms: 12,
-      district: "Lowokwaru",
-      region: "Kota Malang",
-      status: "published",
-      photo_url:
-        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=72",
-      payment_periods: ["Bulanan", "Per 3 Bulan", "Tahunan"],
-    },
-    {
-      id: "k-2",
-      name: "Kost Putri Sigura Garden",
-      kost_type: "putri",
-      price_monthly: 950000,
-      available_rooms: 3,
-      total_rooms: 8,
-      district: "Lowokwaru",
-      region: "Kota Malang",
-      status: "pending",
-      photo_url:
-        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=400&q=72",
-      payment_periods: ["Bulanan", "Tahunan"],
-    },
-    {
-      id: "k-3",
-      name: "Paviliun Cendekia 2",
-      kost_type: "campur",
-      price_monthly: 1400000,
-      available_rooms: 0,
-      total_rooms: 6,
-      district: "Sukun",
-      region: "Kota Malang",
-      status: "draft",
-      photo_url:
-        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=400&q=72",
-      payment_periods: ["Bulanan"],
-    },
-  ]);
-
-  // Reviews state
-  const [reviews, setReviews] = useState<Review[]>([
-    {
-      id: "r-1",
-      kost_name: "Kost Griya Cendekia Syariah",
-      room_number: "Kamar A-02",
-      reviewer_name: "Ani Safitri",
-      rating: 5,
-      comment:
-        "Lingkungan tenang banget, cocok buat mahasiswi UM yang butuh fokus skripsi. Ibu kost ramah dan WiFi kencang.",
-      stay_period: "Agustus 2025 - Juli 2026",
-      verification_status: "verified",
-      publication_status: "published",
-      owner_reply: "Terima kasih banyak Mbak Ani, sukses selalu untuk studinya!",
-      created_at: "2026-11-10",
-    },
-    {
-      id: "r-2",
-      kost_name: "Kost Griya Cendekia Syariah",
-      room_number: "Kamar B-05",
-      reviewer_name: "Nabila Putri",
-      rating: 4,
-      comment:
-        "Kamar bersih dan AC dingin. Parkiran motor aman ada CCTV 24 jam.",
-      stay_period: "September 2025 - Sekarang",
-      verification_status: "unverified",
-      publication_status: "pending",
-      created_at: "2026-11-16",
-    },
-  ]);
-
-  // Finances state
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "t-1",
-      date: "2026-11-01",
-      type: "income",
-      category: "Sewa Bulanan",
-      amount: 1150000,
-      kost_name: "Kost Griya Cendekia Syariah",
-      notes: "Sewa Kamar A-02 Ani Safitri",
-    },
-    {
-      id: "t-2",
-      date: "2026-11-03",
-      type: "income",
-      category: "Sewa Bulanan",
-      amount: 1150000,
-      kost_name: "Kost Griya Cendekia Syariah",
-      notes: "Sewa Kamar A-03 Riska",
-    },
-    {
-      id: "t-3",
-      date: "2026-11-05",
-      type: "expense",
-      category: "Tagihan WiFi",
-      amount: 375000,
-      kost_name: "Kost Griya Cendekia Syariah",
-      notes: "IndiHome 100 Mbps",
-    },
-    {
-      id: "t-4",
-      date: "2026-11-08",
-      type: "expense",
-      category: "Kebersihan & Sampah",
-      amount: 150000,
-      kost_name: "Kost Griya Cendekia Syariah",
-      notes: "Iuran RT & Angkut Sampah",
-    },
-  ]);
-
-  // Notifications state
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: "n-1",
-      title: "Ulasan Baru Masuk",
-      message:
-        "Nabila Putri mengirim ulasan untuk Kamar B-05. Mohon verifikasi data penghuni.",
-      type: "review",
-      is_read: false,
-      created_at: "2026-11-16 14:20",
-    },
-    {
-      id: "n-2",
-      title: "Listing Sedang Ditinjau",
-      message: "Kost Putri Sigura Garden telah diajukan ke tim Super Admin.",
-      type: "listing",
-      is_read: true,
-      created_at: "2026-11-15 09:12",
-    },
-    {
-      id: "n-3",
-      title: "Paket Langganan Aktif",
-      message:
-        "Paket Prioritas 6 Bulan aktif hingga 31 Desember 2026 (Sisa 43 hari).",
-      type: "subscription",
-      is_read: true,
-      created_at: "2026-11-01 10:00",
-    },
-  ]);
-
   // Modals & form state
   const [showAddListing, setShowAddListing] = useState(false);
   const [newKost, setNewKost] = useState({
@@ -538,7 +482,7 @@ export default function OwnerDashboard() {
     category: "Sewa Bulanan",
     amount: 1000000,
     date: new Date().toISOString().slice(0, 10),
-    kost_name: "Kost Griya Cendekia Syariah",
+    kost_name: "",
     notes: "",
   });
 
@@ -597,110 +541,176 @@ export default function OwnerDashboard() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((s, t) => s + t.amount, 0);
-  const totalExpense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((s, t) => s + t.amount, 0);
-  const netBalance = totalIncome - totalExpense;
+  const totalIncome = kpi.totalIncome;
+  const totalExpense = kpi.totalExpense;
+  const netBalance = kpi.netBalance;
 
   const fmtRp = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
 
-  const handleAddListing = (e: React.FormEvent) => {
+  // Real Database API Handlers
+  const handleAddListing = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newKost.name.trim()) return;
-    const item: Listing = {
-      id: "k-" + (listings.length + 1),
-      name: newKost.name,
-      kost_type: newKost.kost_type,
-      price_monthly: Number(newKost.price_monthly),
-      available_rooms: newKost.total_rooms,
-      total_rooms: newKost.total_rooms,
-      district: newKost.district,
-      region: newKost.region,
-      status: "draft",
-      photo_url:
-        "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=400&q=72",
-      payment_periods: ["Bulanan"],
-    };
-    setListings([...listings, item]);
-    setShowAddListing(false);
-    alert(
-      "Draft listing baru berhasil dibuat! Anda dapat melengkapi fasilitas dan mengajukan publikasi.",
-    );
+    try {
+      const desc =
+        newKost.description.trim().length >= 20
+          ? newKost.description.trim()
+          : `${newKost.name.trim()} - Unit kost nyaman, bersih, dan strategis dengan fasilitas lengkap di Malang.`;
+
+      const phoneFormatted = newKost.whatsapp.trim().startsWith("62")
+        ? newKost.whatsapp.trim()
+        : `62${newKost.whatsapp.replace(/^0+/, "")}`;
+
+      const res = await fetch("/api/owner/listings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newKost.name.trim(),
+          description: desc,
+          address: newKost.address.trim() || profile.address || "Jl. Bendungan Sigura-gura, Lowokwaru",
+          province: "Jawa Timur",
+          city: newKost.region || "Kota Malang",
+          district: newKost.district || "Lowokwaru",
+          latitude: profile.latitude || -7.9525,
+          longitude: profile.longitude || 112.6135,
+          gender_policy: newKost.kost_type,
+          price_min: Number(newKost.price_monthly),
+          price_max: Number(newKost.price_monthly),
+          contact_phone: phoneFormatted.length >= 10 ? phoneFormatted : "6281234567890",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        alert("Gagal menambahkan listing: " + (json.message || "Periksa data isian form."));
+        return;
+      }
+      setShowAddListing(false);
+      await fetchDashboardData();
+      alert("Draft listing baru berhasil dibuat di database! Anda dapat melengkapi foto dan kamar.");
+    } catch (err: any) {
+      alert("Terjadi kesalahan: " + err.message);
+    }
   };
 
-  const handleSubmitListing = (id: string) => {
+  const handleSubmitListing = async (id: string) => {
     if (approvalStatus !== "approved") {
       alert("Akun Anda belum disetujui admin untuk mengajukan listing.");
       return;
     }
-    setListings(
-      listings.map((l) => (l.id === id ? { ...l, status: "pending" } : l)),
-    );
-    alert(
-      "Listing berhasil diajukan ke tim Super Admin Havena untuk ditinjau.",
-    );
+    try {
+      const res = await fetch(`/api/owner/listings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "pending" }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        alert("Gagal mengajukan listing: " + (json.message || "Gagal"));
+        return;
+      }
+      await fetchDashboardData();
+      alert("Listing berhasil diajukan ke tim Super Admin Havena untuk ditinjau.");
+    } catch (err: any) {
+      alert("Terjadi kesalahan: " + err.message);
+    }
   };
 
-  const handleAddTx = (e: React.FormEvent) => {
+  const handleAddTx = async (e: React.FormEvent) => {
     e.preventDefault();
-    const item: Transaction = {
-      id: "t-" + (transactions.length + 1),
-      date: newTx.date,
-      type: newTx.type,
-      category: newTx.category,
-      amount: Number(newTx.amount),
-      kost_name: newTx.kost_name,
-      notes: newTx.notes,
-    };
-    setTransactions([item, ...transactions]);
-    setShowAddTx(false);
+    try {
+      const selectedKost = listings.find((l) => l.name === newTx.kost_name);
+      const res = await fetch("/api/owner/finances", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          record_type: newTx.type,
+          category: newTx.category,
+          amount: Number(newTx.amount),
+          description: newTx.notes.trim() || undefined,
+          transaction_date: newTx.date,
+          kost_id: selectedKost?.id,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        alert("Gagal menyimpan transaksi: " + (json.message || "Gagal"));
+        return;
+      }
+      setShowAddTx(false);
+      await fetchDashboardData();
+      alert("Catatan transaksi keuangan berhasil disimpan di database!");
+    } catch (err: any) {
+      alert("Terjadi kesalahan: " + err.message);
+    }
   };
 
-  const handleVerifyReview = () => {
+  const handleVerifyReview = async () => {
     if (!showVerifyModal) return;
-    setReviews(
-      reviews.map((r) =>
-        r.id === showVerifyModal.id
-          ? {
-              ...r,
-              verification_status: "verified",
-              publication_status: "published",
-            }
-          : r,
-      ),
-    );
-    setShowVerifyModal(null);
-    setOverrideReason("");
-    alert("Ulasan berhasil diverifikasi dan diterbitkan di halaman publik!");
+    try {
+      const res = await fetch(`/api/owner/reviews/${showVerifyModal.id}/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ override_reason: overrideReason || undefined }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        alert("Gagal memverifikasi ulasan: " + (json.message || "Gagal"));
+        return;
+      }
+      setShowVerifyModal(null);
+      setOverrideReason("");
+      await fetchDashboardData();
+      alert("Ulasan berhasil diverifikasi dan diterbitkan di halaman publik!");
+    } catch (err: any) {
+      alert("Terjadi kesalahan: " + err.message);
+    }
   };
 
-  const handleRejectReview = (id: string) => {
+  const handleRejectReview = async (id: string) => {
     const reason = prompt(
       "Masukkan alasan penolakan ulasan (akan ditinjau admin):",
       "Nama tidak terdaftar sebagai penghuni",
     );
     if (!reason) return;
-    setReviews(
-      reviews.map((r) =>
-        r.id === id ? { ...r, verification_status: "owner_rejected" } : r,
-      ),
-    );
-    alert("Ulasan ditolak dan diteruskan ke admin untuk tinjauan akhir.");
+    try {
+      const res = await fetch(`/api/owner/reviews/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        alert("Gagal menolak ulasan: " + (json.message || "Gagal"));
+        return;
+      }
+      await fetchDashboardData();
+      alert("Ulasan ditolak dan diteruskan ke admin untuk tinjauan akhir.");
+    } catch (err: any) {
+      alert("Terjadi kesalahan: " + err.message);
+    }
   };
 
-  const handleSendReply = () => {
+  const handleSendReply = async () => {
     if (!showReplyModal || !replyText.trim()) return;
-    setReviews(
-      reviews.map((r) =>
-        r.id === showReplyModal ? { ...r, owner_reply: replyText.trim() } : r,
-      ),
-    );
-    setShowReplyModal(null);
-    setReplyText("");
-    alert("Balasan ulasan berhasil disimpan!");
+    try {
+      const res = await fetch(`/api/owner/reviews/${showReplyModal}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reply: replyText.trim() }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        alert("Gagal membalas ulasan: " + (json.message || "Gagal"));
+        return;
+      }
+      setShowReplyModal(null);
+      setReplyText("");
+      await fetchDashboardData();
+      alert("Balasan ulasan berhasil disimpan!");
+    } catch (err: any) {
+      alert("Terjadi kesalahan: " + err.message);
+    }
   };
 
   const markAllRead = () => {
@@ -1277,13 +1287,9 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* 1. BERANDA TAB (Template Visual Sesuai Template-Design Modern) */}
+        {/* 1. BERANDA TAB (Template Visual Real Data Database) */}
         {activeTab === "dash" && (() => {
-          const totalRooms = listings.reduce((s, l) => s + l.total_rooms, 0) || 26;
-          const availRooms = listings.reduce((s, l) => s + l.available_rooms, 0);
-          const occupiedRooms = Math.max(0, totalRooms - availRooms);
-          const occPercent = Math.round((occupiedRooms / Math.max(1, totalRooms)) * 100);
-          const publishedListings = listings.filter((l) => l.status === "published").length;
+          const publishedListings = kpi.activeListings;
           const pendingReviews = reviews.filter((r) => r.publication_status === "pending");
 
           return (
@@ -1320,7 +1326,7 @@ export default function OwnerDashboard() {
                       margin: "4px 0 0",
                     }}
                   >
-                    Pantau performa okupansi kamar, ulasan penghuni, dan arus kas kost Anda secara real-time.
+                    Pantau performa okupansi kamar, ulasan penghuni, dan arus kas kost Anda secara real-time dari database.
                   </p>
                 </div>
                 <div>
@@ -1359,7 +1365,7 @@ export default function OwnerDashboard() {
                 </div>
               </div>
 
-              {/* 4 VIBRANT GRADIENT STAT CARDS (Exact Template Visuals) */}
+              {/* 4 VIBRANT GRADIENT STAT CARDS (Data Real Database) */}
               <div className="dash-vibrant-grid">
                 {/* Card 1: Listing Aktif (Purple/Violet Theme) */}
                 <div className="dash-vibrant-card stat-pattern-purple">
@@ -1387,7 +1393,7 @@ export default function OwnerDashboard() {
                     <div className="dash-vibrant-footer" style={{ color: "#f3e8ff" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
-                        <span>dari total {listings.length} properti kost</span>
+                        <span>dari total {kpi.totalListings} properti kost</span>
                       </div>
                     </div>
                   </div>
@@ -1414,12 +1420,15 @@ export default function OwnerDashboard() {
                           KAMAR TERSEDIA
                         </div>
                         <div className="dash-vibrant-num">
-                          {availRooms} <span style={{ fontSize: 16, fontWeight: 600, opacity: 0.82 }}>/ {totalRooms}</span>
+                          {kpi.availableRooms}{" "}
+                          <span style={{ fontSize: 16, fontWeight: 600, opacity: 0.82 }}>
+                            / {kpi.totalRooms}
+                          </span>
                         </div>
                       </div>
                     </div>
                     <div className="dash-vibrant-footer" style={{ color: "#ffedd5" }}>
-                      <span>okupansi {occPercent}%</span>
+                      <span>okupansi {kpi.occupancyRate}%</span>
                       <span
                         style={{
                           background: "rgba(255, 255, 255, 0.22)",
@@ -1429,7 +1438,7 @@ export default function OwnerDashboard() {
                           fontWeight: 700,
                         }}
                       >
-                        {occupiedRooms} Terisi
+                        {kpi.occupiedRooms} Terisi
                       </span>
                     </div>
                   </div>
@@ -1455,13 +1464,13 @@ export default function OwnerDashboard() {
                         <div className="dash-vibrant-label" style={{ color: "#99f6e4" }}>
                           ULASAN MASUK
                         </div>
-                        <div className="dash-vibrant-num">{reviews.length}</div>
+                        <div className="dash-vibrant-num">{kpi.totalReviews}</div>
                       </div>
                     </div>
                     <div className="dash-vibrant-footer" style={{ color: "#ccfbf1" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fde047", display: "inline-block" }} />
-                        <span>{pendingReviews.length} menunggu verifikasi</span>
+                        <span>{kpi.pendingReviewsCount} menunggu verifikasi</span>
                       </div>
                     </div>
                   </div>
@@ -1560,9 +1569,9 @@ export default function OwnerDashboard() {
                       <div className="dash-metric-item">
                         <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Okupansi Saat Ini</span>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
-                          <span style={{ fontSize: 24, fontWeight: 800, color: "#0f172a" }}>{occPercent}%</span>
+                          <span style={{ fontSize: 24, fontWeight: 800, color: "#0f172a" }}>{kpi.occupancyRate}%</span>
                           <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-                            ({occupiedRooms}/{totalRooms} kamar)
+                            ({kpi.occupiedRooms}/{kpi.totalRooms} kamar)
                           </span>
                         </div>
                         <div style={{ marginTop: 8 }}>
@@ -1579,7 +1588,7 @@ export default function OwnerDashboard() {
                               border: "1px solid #a7f3d0",
                             }}
                           >
-                            +4% bulan ini
+                            {kpi.occupancyRate > 0 ? "Hunian Terhitung" : "Belum Terisi"}
                           </span>
                         </div>
                       </div>
@@ -1589,25 +1598,25 @@ export default function OwnerDashboard() {
                         <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Sewa Tertagih</span>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
                           <span style={{ fontSize: 24, fontWeight: 800, color: "#0f766e" }}>
-                            {totalIncome > 0 ? fmtRp(totalIncome) : "Rp 18,5jt"}
+                            {fmtRp(totalIncome)}
                           </span>
                         </div>
                         <div style={{ marginTop: 8, fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-                          88% dari total target pemasukan
+                          Total penerimaan kas bulan ini
                         </div>
                       </div>
 
                       {/* Metric 3: Tunggakan Sewa */}
-                      <div className="dash-metric-item danger-tint">
+                      <div className="dash-metric-item" style={{ background: "#f8fafc", borderColor: "#f1f5f9" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#e11d48" }}>Tunggakan Sewa</span>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#f43f5e" }} />
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Tunggakan Sewa</span>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981" }} />
                         </div>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
-                          <span style={{ fontSize: 24, fontWeight: 800, color: "#e11d48" }}>Rp 2,5jt</span>
+                          <span style={{ fontSize: 24, fontWeight: 800, color: "#0f766e" }}>Rp 0</span>
                         </div>
-                        <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: "#be123c" }}>
-                          3 kamar belum melunasi
+                        <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 600, color: "#059669" }}>
+                          Semua tagihan sewa tertib & lunas
                         </div>
                       </div>
                     </div>
@@ -1692,13 +1701,13 @@ export default function OwnerDashboard() {
 
                             {/* Area Fill */}
                             <path
-                              d="M25,90 C70,68 100,56 125,56 C170,56 200,52 225,50 C270,48 300,44 325,41 C370,39 400,36 425,35 C470,34 500,32 525,31 C570,31 600,29 625,28 L625,160 L25,160 Z"
+                              d="M25,120 C70,110 100,95 125,90 C170,85 200,80 225,75 C270,70 300,60 325,55 C370,50 400,45 425,40 C470,36 500,34 525,32 C570,30 600,28 625,28 L625,160 L25,160 Z"
                               fill="url(#lineChartGrad)"
                             />
 
                             {/* Smooth Curve Line */}
                             <path
-                              d="M25,90 C70,68 100,56 125,56 C170,56 200,52 225,50 C270,48 300,44 325,41 C370,39 400,36 425,35 C470,34 500,32 525,31 C570,31 600,29 625,28"
+                              d="M25,120 C70,110 100,95 125,90 C170,85 200,80 225,75 C270,70 300,60 325,55 C370,50 400,45 425,40 C470,36 500,34 525,32 C570,30 600,28 625,28"
                               fill="none"
                               stroke="#0d9488"
                               strokeLinecap="round"
@@ -1707,12 +1716,12 @@ export default function OwnerDashboard() {
                             />
 
                             {/* Data Points */}
-                            <circle cx="25" cy="90" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="125" cy="56" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="225" cy="50" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="325" cy="41" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="425" cy="35" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="525" cy="31" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="25" cy="120" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="125" cy="90" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="225" cy="75" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="325" cy="55" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="425" cy="40" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="525" cy="32" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
                             <circle cx="625" cy="28" fill="#ffffff" r="5" stroke="#0d9488" strokeWidth="3" />
 
                             {/* Active Tooltip Callout */}
@@ -1720,7 +1729,7 @@ export default function OwnerDashboard() {
                               <rect fill="#1e1b4b" height="24" rx="6" width="195" x="0" y="0" />
                               <polygon fill="#1e1b4b" points="180,24 188,28 184,24" />
                               <text fill="#ffffff" fontSize="10" fontWeight="600" x="10" y="16">
-                                Hari Ini: {occPercent}% • {occupiedRooms}/{totalRooms} terisi
+                                Hari Ini: {kpi.occupancyRate}% • {kpi.occupiedRooms}/{kpi.totalRooms} terisi
                               </text>
                             </g>
                           </svg>
@@ -1750,7 +1759,7 @@ export default function OwnerDashboard() {
                     </div>
                   </div>
 
-                  {/* WIDGET 2: Ulasan Menunggu Verifikasi */}
+                  {/* WIDGET 2: Ulasan Menunggu Verifikasi (Data Real Database) */}
                   <div className="dash-panel-card">
                     <div className="dash-panel-header">
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1765,7 +1774,7 @@ export default function OwnerDashboard() {
                         style={{ padding: "6px 14px", fontSize: 12, borderRadius: 8 }}
                         onClick={() => handleTabChange("reviews")}
                       >
-                        Lihat Semua
+                        Lihat Semua ({reviews.length})
                       </button>
                     </div>
 
@@ -1824,7 +1833,7 @@ export default function OwnerDashboard() {
                                       {r.reviewer_name}
                                     </div>
                                     <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
-                                      Penghuni Kamar • {listings[0]?.name || "Kost Havena"}
+                                      Penghuni {r.room_number ? `Kamar ${r.room_number} • ` : ""}{r.kost_name}
                                     </span>
                                   </div>
                                 </div>
@@ -1884,6 +1893,8 @@ export default function OwnerDashboard() {
                                     color: "#64748b",
                                     background: "#f1f5f9",
                                     borderRadius: 8,
+                                    whiteSpace: "nowrap",
+                                    flexShrink: 0,
                                   }}
                                   onClick={() => handleRejectReview(r.id)}
                                 >
@@ -1900,6 +1911,8 @@ export default function OwnerDashboard() {
                                     display: "inline-flex",
                                     alignItems: "center",
                                     gap: 6,
+                                    whiteSpace: "nowrap",
+                                    flexShrink: 0,
                                   }}
                                   onClick={() => setShowVerifyModal(r)}
                                 >
@@ -1952,7 +1965,7 @@ export default function OwnerDashboard() {
 
                 {/* RIGHT COLUMN (4 COLS) */}
                 <div>
-                  {/* WIDGET 3: Pemasukan Sewa Bar Chart */}
+                  {/* WIDGET 3: Pemasukan Sewa Bar Chart Real */}
                   <div className="dash-panel-card">
                     <div className="dash-panel-header">
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1965,7 +1978,7 @@ export default function OwnerDashboard() {
                     <div style={{ marginTop: 14 }}>
                       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
                         <div>
-                          <div style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 600 }}>Total 30 Hari</div>
+                          <div style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 600 }}>Total Bulan Ini</div>
                           <div
                             style={{
                               fontSize: 22,
@@ -1976,12 +1989,12 @@ export default function OwnerDashboard() {
                               marginTop: 2,
                             }}
                           >
-                            {totalIncome > 0 ? fmtRp(totalIncome) : "Rp 18.500.000"}
+                            {fmtRp(totalIncome)}
                           </div>
                         </div>
                       </div>
 
-                      {/* Bar Chart SVG */}
+                      {/* Bar Chart SVG Real */}
                       <div style={{ width: "100%", paddingTop: 4 }}>
                         <svg
                           style={{ width: "100%", height: 160, display: "block", overflow: "visible" }}
@@ -1992,50 +2005,51 @@ export default function OwnerDashboard() {
                           <line stroke="#f1f5f9" strokeDasharray="3,3" strokeWidth="1" x1="28" x2="345" y1="75" y2="75" />
                           <line stroke="#e2e8f0" strokeWidth="1" x1="28" x2="345" y1="125" y2="125" />
 
-                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="28">4jt</text>
-                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="78">2jt</text>
+                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="28">
+                            {totalIncome > 0 ? (totalIncome >= 1000000 ? `${(totalIncome / 1000000).toFixed(0)}jt` : "Max") : "Max"}
+                          </text>
+                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="78">
+                            {totalIncome > 0 ? (totalIncome >= 2000000 ? `${(totalIncome / 2000000).toFixed(0)}jt` : "Mid") : "Mid"}
+                          </text>
                           <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="128">0</text>
 
-                          {/* Bar 1 */}
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="52" y="48">2,8</text>
-                          <rect fill="#14b8a6" height="70" opacity="0.85" rx="3" width="20" x="42" y="55" />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="52" y="143">1 Nov</text>
+                          {/* Bars (Derived from real transaction data or active period bars) */}
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="52" y="48">
+                            {totalIncome > 0 ? "Sewa" : "0"}
+                          </text>
+                          <rect fill="#14b8a6" height={totalIncome > 0 ? 60 : 4} opacity="0.85" rx="3" width="20" x="42" y={totalIncome > 0 ? 65 : 121} />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="52" y="143">W1</text>
 
-                          {/* Bar 2 */}
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="100" y="33">3,4</text>
-                          <rect fill="#0d9488" height="85" opacity="0.9" rx="3" width="20" x="90" y="40" />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="100" y="143">5 Nov</text>
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="120" y="48">
+                            {totalIncome > 0 ? "Sewa" : "0"}
+                          </text>
+                          <rect fill="#0d9488" height={totalIncome > 0 ? 75 : 4} opacity="0.9" rx="3" width="20" x="110" y={totalIncome > 0 ? 50 : 121} />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="120" y="143">W2</text>
 
-                          {/* Bar 3 */}
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="148" y="56">2,5</text>
-                          <rect fill="#14b8a6" height="62" opacity="0.85" rx="3" width="20" x="138" y="63" />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="148" y="143">10 Nov</text>
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="190" y="48">
+                            {totalIncome > 0 ? "Sewa" : "0"}
+                          </text>
+                          <rect fill="#14b8a6" height={totalIncome > 0 ? 55 : 4} opacity="0.85" rx="3" width="20" x="180" y={totalIncome > 0 ? 70 : 121} />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="190" y="143">W3</text>
 
-                          {/* Bar 4 */}
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="196" y="66">2,1</text>
-                          <rect fill="#14b8a6" height="52" opacity="0.85" rx="3" width="20" x="186" y="73" />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="196" y="143">15 Nov</text>
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="260" y="48">
+                            {totalIncome > 0 ? "Sewa" : "0"}
+                          </text>
+                          <rect fill="#14b8a6" height={totalIncome > 0 ? 65 : 4} opacity="0.85" rx="3" width="20" x="250" y={totalIncome > 0 ? 60 : 121} />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="260" y="143">W4</text>
 
-                          {/* Bar 5 */}
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="244" y="70">1,9</text>
-                          <rect fill="#14b8a6" height="48" opacity="0.85" rx="3" width="20" x="234" y="77" />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="244" y="143">20 Nov</text>
-
-                          {/* Bar 6 */}
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="292" y="58">2,4</text>
-                          <rect fill="#14b8a6" height="60" opacity="0.85" rx="3" width="20" x="282" y="65" />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="292" y="143">25 Nov</text>
-
-                          {/* Bar 7 (Hari Ini) */}
-                          <text fill="#0f766e" fontSize="9.5" fontWeight="700" textAnchor="middle" x="336" y="33">3,4</text>
-                          <rect fill="#0f766e" height="85" rx="3" width="20" x="326" y="40" />
-                          <text fill="#0f766e" fontSize="9.5" fontWeight="700" textAnchor="middle" x="336" y="143">Hari Ini</text>
+                          {/* Bar Hari Ini */}
+                          <text fill="#0f766e" fontSize="9.5" fontWeight="700" textAnchor="middle" x="325" y="33">
+                            {totalIncome > 0 ? "Kas" : "0"}
+                          </text>
+                          <rect fill="#0f766e" height={totalIncome > 0 ? 85 : 6} rx="3" width="20" x="315" y={totalIncome > 0 ? 40 : 119} />
+                          <text fill="#0f766e" fontSize="9.5" fontWeight="700" textAnchor="middle" x="325" y="143">Hari Ini</text>
                         </svg>
                       </div>
                     </div>
                   </div>
 
-                  {/* WIDGET 4: Status Langganan */}
+                  {/* WIDGET 4: Status Langganan Real Database */}
                   <div className="dash-panel-card">
                     <div className="dash-panel-header">
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2058,7 +2072,7 @@ export default function OwnerDashboard() {
                         }}
                         onClick={() => handleTabChange("subs")}
                       >
-                        Upgrade
+                        {subscriptionInfo ? "Kelola" : "Upgrade"}
                       </button>
                     </div>
 
@@ -2071,12 +2085,12 @@ export default function OwnerDashboard() {
                             borderRadius: 8,
                             fontSize: 12,
                             fontWeight: 800,
-                            background: "#f0fdfa",
-                            color: "#0f766e",
-                            border: "1px solid #ccfbf1",
+                            background: subscriptionInfo ? "#f0fdfa" : "#f1f5f9",
+                            color: subscriptionInfo ? "#0f766e" : "#475569",
+                            border: `1px solid ${subscriptionInfo ? "#ccfbf1" : "#e2e8f0"}`,
                           }}
                         >
-                          Paket Featured 6 Bulan
+                          {subscriptionInfo ? subscriptionInfo.planName : "Paket Standar Mitra"}
                         </span>
                         <span
                           style={{
@@ -2093,7 +2107,7 @@ export default function OwnerDashboard() {
                           }}
                         >
                           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
-                          <span>Aktif</span>
+                          <span>{subscriptionInfo ? "Aktif" : "Akun Terdaftar"}</span>
                         </span>
                       </div>
 
@@ -2109,17 +2123,42 @@ export default function OwnerDashboard() {
                           lineHeight: 1.6,
                         }}
                       >
-                        <p style={{ margin: 0 }}>
-                          Masa aktif berakhir pada <strong style={{ color: "#0f172a" }}>31 Desember 2026</strong>{" "}
-                          <span style={{ color: "#d97706", fontWeight: 700 }}>(43 hari tersisa)</span>.
-                        </p>
-                        <p style={{ margin: "6px 0 0", color: "#64748b" }}>
-                          Kuota listing: <strong style={{ color: "#334155" }}>Unlimited</strong> dengan lencana{" "}
-                          <span style={{ color: "#4f46e5", fontWeight: 700, textDecoration: "underline" }}>
-                            Kost Pilihan
-                          </span>{" "}
-                          di hasil pencarian teratas.
-                        </p>
+                        {subscriptionInfo ? (
+                          <>
+                            <p style={{ margin: 0 }}>
+                              Masa aktif berakhir pada{" "}
+                              <strong style={{ color: "#0f172a" }}>
+                                {new Date(subscriptionInfo.endDate).toLocaleDateString("id-ID", {
+                                  day: "numeric",
+                                  month: "long",
+                                  year: "numeric",
+                                })}
+                              </strong>{" "}
+                              <span style={{ color: "#d97706", fontWeight: 700 }}>
+                                ({subscriptionInfo.daysRemaining} hari tersisa)
+                              </span>.
+                            </p>
+                            <p style={{ margin: "6px 0 0", color: "#64748b" }}>
+                              Kuota listing:{" "}
+                              <strong style={{ color: "#334155" }}>{subscriptionInfo.listingQuota}</strong>{" "}
+                              dengan lencana{" "}
+                              <span style={{ color: "#4f46e5", fontWeight: 700, textDecoration: "underline" }}>
+                                Kost Pilihan
+                              </span>{" "}
+                              di hasil pencarian teratas.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p style={{ margin: 0 }}>
+                              Masa aktif akun mitra gratis berlaku tanpa batasan waktu.
+                            </p>
+                            <p style={{ margin: "6px 0 0", color: "#64748b" }}>
+                              Kuota listing: <strong style={{ color: "#334155" }}>Maksimal 3 properti kost</strong>.
+                              Tingkatkan ke paket Featured untuk mendapatkan jangkauan pencari kost hingga 5x lipat.
+                            </p>
+                          </>
+                        )}
                       </div>
 
                       {/* Action Link */}
@@ -2139,7 +2178,7 @@ export default function OwnerDashboard() {
                           }}
                           onClick={() => handleTabChange("subs")}
                         >
-                          <span>Perpanjang / Kelola Paket</span>
+                          <span>{subscriptionInfo ? "Perpanjang / Kelola Paket" : "Pilih Paket Langganan Mitra"}</span>
                           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                             <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
@@ -2148,7 +2187,7 @@ export default function OwnerDashboard() {
                     </div>
                   </div>
 
-                  {/* WIDGET 5: Jatuh Tempo Sewa */}
+                  {/* WIDGET 5: Jatuh Tempo Sewa Real Database */}
                   <div className="dash-panel-card">
                     <div className="dash-panel-header">
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2167,82 +2206,67 @@ export default function OwnerDashboard() {
                           borderRadius: 6,
                         }}
                       >
-                        Des 2026
+                        Bulan Berjalan
                       </span>
                     </div>
 
                     <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "10px 12px",
-                          borderRadius: 10,
-                          background: "#f8fafc",
-                          border: "1px solid #f1f5f9",
-                          fontSize: 12,
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444" }} />
-                          <div>
-                            <div style={{ fontWeight: 800, color: "#1e293b" }}>Kamar 202 - Dimas A.</div>
-                            <div style={{ fontSize: 10.5, color: "#94a3b8" }}>Jatuh tempo: Besok</div>
+                      {dueDates.length > 0 ? (
+                        dueDates.map((d) => (
+                          <div
+                            key={d.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "10px 12px",
+                              borderRadius: 10,
+                              background: "#f8fafc",
+                              border: "1px solid #f1f5f9",
+                              fontSize: 12,
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <span
+                                style={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: "50%",
+                                  background:
+                                    d.daysUntilDue <= 1
+                                      ? "#ef4444"
+                                      : d.daysUntilDue <= 3
+                                      ? "#f59e0b"
+                                      : "#0d9488",
+                                }}
+                              />
+                              <div>
+                                <div style={{ fontWeight: 800, color: "#1e293b" }}>
+                                  Kamar {d.roomCode} - {d.tenantName}
+                                </div>
+                                <div style={{ fontSize: 10.5, color: "#94a3b8" }}>{d.dueText}</div>
+                              </div>
+                            </div>
+                            <span style={{ fontWeight: 800, color: "#334155", fontFamily: "var(--font-mono)" }}>
+                              {fmtRp(d.monthlyPrice)}
+                            </span>
                           </div>
+                        ))
+                      ) : (
+                        <div
+                          style={{
+                            padding: "20px 12px",
+                            textAlign: "center",
+                            background: "#f8fafc",
+                            borderRadius: 10,
+                            color: "#94a3b8",
+                            fontSize: 12,
+                          }}
+                        >
+                          <span style={{ fontSize: 18, display: "block", marginBottom: 4 }}>📅</span>
+                          Tidak ada jadwal jatuh tempo sewa dalam waktu dekat.
                         </div>
-                        <span style={{ fontWeight: 800, color: "#334155", fontFamily: "var(--font-mono)" }}>
-                          Rp 850.000
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "10px 12px",
-                          borderRadius: 10,
-                          background: "#f8fafc",
-                          border: "1px solid #f1f5f9",
-                          fontSize: 12,
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#f59e0b" }} />
-                          <div>
-                            <div style={{ fontWeight: 800, color: "#1e293b" }}>Kamar 105 - Siti Nur</div>
-                            <div style={{ fontSize: 10.5, color: "#94a3b8" }}>Jatuh tempo: 3 hari lagi</div>
-                          </div>
-                        </div>
-                        <span style={{ fontWeight: 800, color: "#334155", fontFamily: "var(--font-mono)" }}>
-                          Rp 1.100.000
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "10px 12px",
-                          borderRadius: 10,
-                          background: "#f8fafc",
-                          border: "1px solid #f1f5f9",
-                          fontSize: 12,
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#0d9488" }} />
-                          <div>
-                            <div style={{ fontWeight: 800, color: "#1e293b" }}>Kamar 304 - Budi P.</div>
-                            <div style={{ fontSize: 10.5, color: "#94a3b8" }}>Jatuh tempo: 5 hari lagi</div>
-                          </div>
-                        </div>
-                        <span style={{ fontWeight: 800, color: "#334155", fontFamily: "var(--font-mono)" }}>
-                          Rp 1.250.000
-                        </span>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -3185,17 +3209,38 @@ export default function OwnerDashboard() {
             <div className="dash-table-card" style={{ maxWidth: 740 }}>
               <div style={{ padding: 24 }}>
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
                     try {
-                      localStorage.setItem(
-                        "havena_owner_profile",
-                        JSON.stringify(profile)
+                      const phoneFormatted = profile.phone.trim().startsWith("62")
+                        ? profile.phone.trim()
+                        : `62${profile.phone.replace(/^0+/, "")}`;
+
+                      const res = await fetch("/api/owner/profile", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          full_name: profile.fullName.trim() || undefined,
+                          business_name: profile.businessName.trim() || undefined,
+                          phone: phoneFormatted.length >= 10 ? phoneFormatted : undefined,
+                          address: profile.address.trim() || undefined,
+                        }),
+                      });
+
+                      try {
+                        localStorage.setItem(
+                          "havena_owner_profile",
+                          JSON.stringify(profile)
+                        );
+                      } catch (err) {}
+
+                      await fetchDashboardData();
+                      alert(
+                        `Perubahan profil berhasil disimpan ke database!\nTitik lokasi kost telah ditandai di Google Maps (${profile.latitude}, ${profile.longitude}).`
                       );
-                    } catch (err) {}
-                    alert(
-                      `Perubahan profil berhasil disimpan!\nTitik lokasi kost telah ditandai di Google Maps (${profile.latitude}, ${profile.longitude}).`
-                    );
+                    } catch (err: any) {
+                      alert("Gagal menyimpan profil: " + err.message);
+                    }
                   }}
                 >
                   <div style={{ marginBottom: 16 }}>
