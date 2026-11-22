@@ -89,6 +89,7 @@ export default function OwnerDashboard() {
   const [activeTab, setActiveTab] = useState<
     "dash" | "listings" | "reviews" | "finance" | "subs" | "notif" | "profile"
   >("dash");
+  const [occupancyPeriod, setOccupancyPeriod] = useState<"30d" | "6m" | "1y">("30d");
 
   // Tab switch handler with auto-close drawer and smooth scroll to top
   const handleTabChange = useCallback((tab: typeof activeTab) => {
@@ -1276,278 +1277,979 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* 1. BERANDA TAB */}
-        {activeTab === "dash" && (
-          <div>
-            <div className="dash-head">
-              <div>
-                <h1>{tabTitles.dash}</h1>
-                <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
-                  Pantau performa okupansi kamar, ulasan penghuni, dan arus kas
-                  kost Anda.
-                </p>
-              </div>
-              <button
-                className="btn btn-emerald btn-sm"
-                onClick={() => setShowAddListing(true)}
+        {/* 1. BERANDA TAB (Template Visual Sesuai Template-Design Modern) */}
+        {activeTab === "dash" && (() => {
+          const totalRooms = listings.reduce((s, l) => s + l.total_rooms, 0) || 26;
+          const availRooms = listings.reduce((s, l) => s + l.available_rooms, 0);
+          const occupiedRooms = Math.max(0, totalRooms - availRooms);
+          const occPercent = Math.round((occupiedRooms / Math.max(1, totalRooms)) * 100);
+          const publishedListings = listings.filter((l) => l.status === "published").length;
+          const pendingReviews = reviews.filter((r) => r.publication_status === "pending");
+
+          return (
+            <div>
+              {/* HERO TITLE & ACTION */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 14,
+                  marginBottom: 24,
+                }}
               >
-                + Tambah Unit Kost
-              </button>
-            </div>
-
-            {/* KPI CARDS (2x2 on mobile, 4 in row on desktop) */}
-            <div className="dash-grid-kpi">
-              <div className="dash-kpi-card">
-                <div className="kpi-label">Listing Aktif</div>
-                <div className="kpi-num" style={{ color: "var(--emerald)" }}>
-                  {listings.filter((l) => l.status === "published").length}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--mut)",
-                    marginTop: 4,
-                  }}
-                >
-                  dari {listings.length} properti
-                </div>
-              </div>
-
-              <div className="dash-kpi-card">
-                <div className="kpi-label">Kamar Tersedia</div>
-                <div className="kpi-num" style={{ color: "var(--teal)" }}>
-                  {listings.reduce((s, l) => s + l.available_rooms, 0)} /{" "}
-                  {listings.reduce((s, l) => s + l.total_rooms, 0)}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--mut)",
-                    marginTop: 4,
-                  }}
-                >
-                  okupansi{" "}
-                  {Math.round(
-                    ((listings.reduce((s, l) => s + l.total_rooms, 0) -
-                      listings.reduce((s, l) => s + l.available_rooms, 0)) /
-                      Math.max(
-                        1,
-                        listings.reduce((s, l) => s + l.total_rooms, 0),
-                      )) *
-                      100,
-                  )}
-                  %
-                </div>
-              </div>
-
-              <div className="dash-kpi-card">
-                <div className="kpi-label">Ulasan Masuk</div>
-                <div className="kpi-num" style={{ color: "var(--gold-dark)" }}>
-                  {reviews.length}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--mut)",
-                    marginTop: 4,
-                  }}
-                >
-                  {
-                    reviews.filter((r) => r.publication_status === "pending")
-                      .length
-                  }{" "}
-                  menunggu verifikasi
-                </div>
-              </div>
-
-              <div className="dash-kpi-card">
-                <div className="kpi-label">Saldo Bulan Ini</div>
-                <div
-                  className="kpi-num"
-                  style={{ color: "var(--wa-dark)", fontSize: 20 }}
-                >
-                  {fmtRp(netBalance)}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--mut)",
-                    marginTop: 4,
-                  }}
-                >
-                  pemasukan {fmtRp(totalIncome)}
-                </div>
-              </div>
-            </div>
-
-            {/* QUICK ACTIONS: Responsive 2-column or 1-column stack */}
-            <div className="dash-grid-2col">
-              <div className="dash-table-card">
-                <div className="dt-head">
-                  <h3
+                <div>
+                  <h1
                     style={{
-                      fontSize: 14,
+                      fontSize: 24,
                       fontWeight: 800,
-                      color: "var(--teal-950)",
+                      color: "#191932",
+                      letterSpacing: "-0.5px",
+                      margin: 0,
                     }}
                   >
-                    Ulasan Menunggu Verifikasi
-                  </h3>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => handleTabChange("reviews")}
+                    Ringkasan Kost
+                  </h1>
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: "#64748b",
+                      marginTop: 4,
+                      fontWeight: 500,
+                      margin: "4px 0 0",
+                    }}
                   >
-                    Lihat Semua
+                    Pantau performa okupansi kamar, ulasan penghuni, dan arus kas kost Anda secara real-time.
+                  </p>
+                </div>
+                <div>
+                  <button
+                    className="btn"
+                    style={{
+                      background: "linear-gradient(135deg, #0f766e 0%, #065f46 100%)",
+                      color: "#ffffff",
+                      fontWeight: 700,
+                      fontSize: 13,
+                      padding: "10px 18px",
+                      borderRadius: 12,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      boxShadow: "0 4px 14px rgba(15, 118, 110, 0.35)",
+                      transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                    }}
+                    onClick={() => setShowAddListing(true)}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span>Tambah Unit Kost</span>
                   </button>
                 </div>
-                <div style={{ padding: 16 }}>
-                  {reviews
-                    .filter((r) => r.publication_status === "pending")
-                    .map((r) => (
-                      <div
-                        key={r.id}
+              </div>
+
+              {/* 4 VIBRANT GRADIENT STAT CARDS (Exact Template Visuals) */}
+              <div className="dash-vibrant-grid">
+                {/* Card 1: Listing Aktif (Purple/Violet Theme) */}
+                <div className="dash-vibrant-card stat-pattern-purple">
+                  <svg className="stat-wave" fill="currentColor" preserveAspectRatio="none" viewBox="0 0 200 100">
+                    <path d="M0,40 C50,90 120,10 200,60 L200,100 L0,100 Z" />
+                  </svg>
+                  <div className="dash-vibrant-inner">
+                    <div className="dash-vibrant-top">
+                      <div className="dash-vibrant-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="dash-vibrant-label" style={{ color: "#e9d5ff" }}>
+                          LISTING AKTIF
+                        </div>
+                        <div className="dash-vibrant-num">{publishedListings}</div>
+                      </div>
+                    </div>
+                    <div className="dash-vibrant-footer" style={{ color: "#f3e8ff" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
+                        <span>dari total {listings.length} properti kost</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2: Kamar Tersedia (Coral/Orange Theme) */}
+                <div className="dash-vibrant-card stat-pattern-coral">
+                  <svg className="stat-wave" fill="currentColor" preserveAspectRatio="none" viewBox="0 0 200 100">
+                    <path d="M0,50 C70,10 110,80 200,30 L200,100 L0,100 Z" />
+                  </svg>
+                  <div className="dash-vibrant-inner">
+                    <div className="dash-vibrant-top">
+                      <div className="dash-vibrant-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="dash-vibrant-label" style={{ color: "#fed7aa" }}>
+                          KAMAR TERSEDIA
+                        </div>
+                        <div className="dash-vibrant-num">
+                          {availRooms} <span style={{ fontSize: 16, fontWeight: 600, opacity: 0.82 }}>/ {totalRooms}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="dash-vibrant-footer" style={{ color: "#ffedd5" }}>
+                      <span>okupansi {occPercent}%</span>
+                      <span
                         style={{
-                          padding: "12px 14px",
-                          border: "1px solid var(--line)",
-                          borderRadius: 12,
-                          marginBottom: 10,
-                          background: "#fff",
+                          background: "rgba(255, 255, 255, 0.22)",
+                          padding: "2px 8px",
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: 700,
                         }}
                       >
+                        {occupiedRooms} Terisi
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 3: Ulasan Masuk (Teal/Emerald Theme) */}
+                <div className="dash-vibrant-card stat-pattern-teal">
+                  <svg className="stat-wave" fill="currentColor" preserveAspectRatio="none" viewBox="0 0 200 100">
+                    <path d="M0,60 C60,20 140,80 200,40 L200,100 L0,100 Z" />
+                  </svg>
+                  <div className="dash-vibrant-inner">
+                    <div className="dash-vibrant-top">
+                      <div className="dash-vibrant-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path
+                            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="dash-vibrant-label" style={{ color: "#99f6e4" }}>
+                          ULASAN MASUK
+                        </div>
+                        <div className="dash-vibrant-num">{reviews.length}</div>
+                      </div>
+                    </div>
+                    <div className="dash-vibrant-footer" style={{ color: "#ccfbf1" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fde047", display: "inline-block" }} />
+                        <span>{pendingReviews.length} menunggu verifikasi</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 4: Saldo Bulan Ini (Sky Blue/Cyan Theme) */}
+                <div className="dash-vibrant-card stat-pattern-blue">
+                  <svg className="stat-wave" fill="currentColor" preserveAspectRatio="none" viewBox="0 0 200 100">
+                    <path d="M0,30 C80,80 130,20 200,50 L200,100 L0,100 Z" />
+                  </svg>
+                  <div className="dash-vibrant-inner">
+                    <div className="dash-vibrant-top">
+                      <div className="dash-vibrant-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path
+                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="dash-vibrant-label" style={{ color: "#bae6fd" }}>
+                          SALDO BULAN INI
+                        </div>
+                        <div className="dash-vibrant-num" style={{ fontSize: 21 }}>
+                          {fmtRp(netBalance)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="dash-vibrant-footer" style={{ color: "#e0f2fe" }}>
+                      <span>
+                        pemasukan: <strong style={{ color: "#ffffff" }}>{fmtRp(totalIncome)}</strong>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* MIDDLE DASHBOARD LAYOUT (2 Columns: Left 8 cols / Right 4 cols) */}
+              <div className="dash-middle-grid">
+                {/* LEFT COLUMN (8 COLS) */}
+                <div>
+                  {/* WIDGET 1: Tren Okupansi Kamar & Area Chart */}
+                  <div className="dash-panel-card">
+                    <div className="dash-panel-header">
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span className="dash-indicator-bar dash-indicator-teal" />
+                          <h2
+                            style={{
+                              fontSize: 17,
+                              fontWeight: 800,
+                              color: "#1e293b",
+                              letterSpacing: "-0.3px",
+                              margin: 0,
+                            }}
+                          >
+                            Tren Okupansi Kamar
+                          </h2>
+                        </div>
+                        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 15px" }}>
+                          Ringkasan dan riwayat tingkat hunian kamar kost bulanan
+                        </p>
+                      </div>
+
+                      {/* Segmented Time Controls */}
+                      <div className="dash-seg-controls">
+                        <button
+                          type="button"
+                          className={`dash-seg-btn ${occupancyPeriod === "30d" ? "active" : ""}`}
+                          onClick={() => setOccupancyPeriod("30d")}
+                        >
+                          30 Hari
+                        </button>
+                        <button
+                          type="button"
+                          className={`dash-seg-btn ${occupancyPeriod === "6m" ? "active" : ""}`}
+                          onClick={() => setOccupancyPeriod("6m")}
+                        >
+                          6 Bulan
+                        </button>
+                        <button
+                          type="button"
+                          className={`dash-seg-btn ${occupancyPeriod === "1y" ? "active" : ""}`}
+                          onClick={() => setOccupancyPeriod("1y")}
+                        >
+                          1 Tahun
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Metric Summary Strip (3 cards) */}
+                    <div className="dash-metric-strip">
+                      {/* Metric 1: Okupansi Saat Ini */}
+                      <div className="dash-metric-item">
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Okupansi Saat Ini</span>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
+                          <span style={{ fontSize: 24, fontWeight: 800, color: "#0f172a" }}>{occPercent}%</span>
+                          <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
+                            ({occupiedRooms}/{totalRooms} kamar)
+                          </span>
+                        </div>
+                        <div style={{ marginTop: 8 }}>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              padding: "2px 8px",
+                              borderRadius: 6,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              background: "#ecfdf5",
+                              color: "#047857",
+                              border: "1px solid #a7f3d0",
+                            }}
+                          >
+                            +4% bulan ini
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Metric 2: Sewa Tertagih */}
+                      <div className="dash-metric-item">
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Sewa Tertagih</span>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
+                          <span style={{ fontSize: 24, fontWeight: 800, color: "#0f766e" }}>
+                            {totalIncome > 0 ? fmtRp(totalIncome) : "Rp 18,5jt"}
+                          </span>
+                        </div>
+                        <div style={{ marginTop: 8, fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
+                          88% dari total target pemasukan
+                        </div>
+                      </div>
+
+                      {/* Metric 3: Tunggakan Sewa */}
+                      <div className="dash-metric-item danger-tint">
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#e11d48" }}>Tunggakan Sewa</span>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#f43f5e" }} />
+                        </div>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
+                          <span style={{ fontSize: 24, fontWeight: 800, color: "#e11d48" }}>Rp 2,5jt</span>
+                        </div>
+                        <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: "#be123c" }}>
+                          3 kamar belum melunasi
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Chart Header Tag */}
+                    <div
+                      style={{
+                        paddingTop: 8,
+                        paddingBottom: 12,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#0d9488" }} />
+                        <span
+                          style={{
+                            fontSize: 11.5,
+                            fontWeight: 800,
+                            color: "#334155",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          1. Tren Okupansi Kamar (%)
+                        </span>
+                      </div>
+                      <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Persentase kamar terhuni</span>
+                    </div>
+
+                    {/* Pure SVG Area Curve Chart (Responsive, Zero Lag) */}
+                    <div style={{ display: "flex", alignItems: "stretch", paddingTop: 4, width: "100%", overflowX: "hidden" }}>
+                      {/* Y-axis */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          fontSize: 10.5,
+                          fontWeight: 600,
+                          color: "#94a3b8",
+                          paddingRight: 10,
+                          paddingBottom: 22,
+                          textAlign: "right",
+                          userSelect: "none",
+                          height: 160,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span>100%</span>
+                        <span>80%</span>
+                        <span>60%</span>
+                        <span>40%</span>
+                        <span>20%</span>
+                        <span>0%</span>
+                      </div>
+
+                      {/* SVG Canvas */}
+                      <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+                        <div style={{ position: "relative", width: "100%", height: 160 }}>
+                          <svg
+                            style={{ width: "100%", height: "100%", display: "block", overflow: "visible" }}
+                            preserveAspectRatio="none"
+                            viewBox="0 0 650 160"
+                          >
+                            <defs>
+                              <linearGradient id="lineChartGrad" x1="0" x2="0" y1="0" y2="1">
+                                <stop offset="0%" stopColor="#0d9488" stopOpacity="0.28" />
+                                <stop offset="100%" stopColor="#0d9488" stopOpacity="0.01" />
+                              </linearGradient>
+                            </defs>
+                            {/* Grid lines */}
+                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="10" y2="10" />
+                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="42" y2="42" />
+                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="74" y2="74" />
+                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="106" y2="106" />
+                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="138" y2="138" />
+                            <line stroke="#e2e8f0" strokeWidth="1.5" x1="0" x2="650" y1="160" y2="160" />
+
+                            {/* Area Fill */}
+                            <path
+                              d="M25,90 C70,68 100,56 125,56 C170,56 200,52 225,50 C270,48 300,44 325,41 C370,39 400,36 425,35 C470,34 500,32 525,31 C570,31 600,29 625,28 L625,160 L25,160 Z"
+                              fill="url(#lineChartGrad)"
+                            />
+
+                            {/* Smooth Curve Line */}
+                            <path
+                              d="M25,90 C70,68 100,56 125,56 C170,56 200,52 225,50 C270,48 300,44 325,41 C370,39 400,36 425,35 C470,34 500,32 525,31 C570,31 600,29 625,28"
+                              fill="none"
+                              stroke="#0d9488"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="3"
+                            />
+
+                            {/* Data Points */}
+                            <circle cx="25" cy="90" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="125" cy="56" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="225" cy="50" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="325" cy="41" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="425" cy="35" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="525" cy="31" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
+                            <circle cx="625" cy="28" fill="#ffffff" r="5" stroke="#0d9488" strokeWidth="3" />
+
+                            {/* Active Tooltip Callout */}
+                            <g transform="translate(425, 2)">
+                              <rect fill="#1e1b4b" height="24" rx="6" width="195" x="0" y="0" />
+                              <polygon fill="#1e1b4b" points="180,24 188,28 184,24" />
+                              <text fill="#ffffff" fontSize="10" fontWeight="600" x="10" y="16">
+                                Hari Ini: {occPercent}% • {occupiedRooms}/{totalRooms} terisi
+                              </text>
+                            </g>
+                          </svg>
+                        </div>
+
+                        {/* X-axis Labels */}
                         <div
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
-                            fontSize: 12,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "#94a3b8",
+                            marginTop: 8,
+                            padding: "0 6px",
                           }}
                         >
-                          <b>{r.reviewer_name}</b>
-                          <span style={{ color: "var(--gold-dark)" }}>
-                            ★ {r.rating}.0
-                          </span>
-                        </div>
-                        <p
-                          style={{
-                            fontSize: 12,
-                            color: "var(--mut)",
-                            marginTop: 4,
-                          }}
-                        >
-                          "{r.comment}"
-                        </p>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 8,
-                            marginTop: 10,
-                            justifyContent: "flex-end",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <button
-                            className="btn btn-line btn-sm"
-                            onClick={() => handleRejectReview(r.id)}
-                          >
-                            Tolak
-                          </button>
-                          <button
-                            className="btn btn-emerald btn-sm"
-                            onClick={() => setShowVerifyModal(r)}
-                          >
-                            Verifikasi
-                          </button>
+                          <span>1 Nov</span>
+                          <span>5 Nov</span>
+                          <span>10 Nov</span>
+                          <span>15 Nov</span>
+                          <span>20 Nov</span>
+                          <span>25 Nov</span>
+                          <span style={{ fontWeight: 800, color: "#0f766e" }}>Hari Ini</span>
                         </div>
                       </div>
-                    ))}
-                  {reviews.filter((r) => r.publication_status === "pending")
-                    .length === 0 && (
-                    <div
-                      style={{
-                        padding: "24px 0",
-                        textAlign: "center",
-                        color: "var(--faint)",
-                        fontSize: 12.5,
-                      }}
-                    >
-                      Tidak ada ulasan baru yang menunggu tindakan.
                     </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="dash-table-card">
-                <div className="dt-head">
-                  <h3
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 800,
-                      color: "var(--teal-950)",
-                    }}
-                  >
-                    Status Langganan
-                  </h3>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => handleTabChange("subs")}
-                  >
-                    Upgrade
-                  </button>
-                </div>
-                <div style={{ padding: 20 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      marginBottom: 14,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <span
-                      style={{
-                        padding: "6px 12px",
-                        background: "var(--emerald-soft2)",
-                        color: "var(--emerald-dark)",
-                        borderRadius: 8,
-                        fontWeight: 800,
-                        fontSize: 12,
-                      }}
-                    >
-                      Paket Featured 6 Bulan
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: "var(--wa-dark)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      ● Aktif
-                    </span>
                   </div>
-                  <p
-                    style={{
-                      fontSize: 12.5,
-                      color: "var(--mut)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Masa aktif berakhir pada <b>31 Desember 2026</b> (43 hari
-                    tersisa). Kuota listing: <b>Unlimited</b> dengan lencana{" "}
-                    <b>Kost Pilihan</b> di hasil pencarian.
-                  </p>
-                  <button
-                    className="btn btn-line btn-sm"
-                    style={{ marginTop: 16, width: "100%" }}
-                    onClick={() => handleTabChange("subs")}
-                  >
-                    Perpanjang / Kelola Paket
-                  </button>
+
+                  {/* WIDGET 2: Ulasan Menunggu Verifikasi */}
+                  <div className="dash-panel-card">
+                    <div className="dash-panel-header">
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span className="dash-indicator-bar dash-indicator-teal" />
+                        <h2 style={{ fontSize: 16, fontWeight: 800, color: "#1e293b", margin: 0 }}>
+                          Ulasan Menunggu Verifikasi
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ padding: "6px 14px", fontSize: 12, borderRadius: 8 }}
+                        onClick={() => handleTabChange("reviews")}
+                      >
+                        Lihat Semua
+                      </button>
+                    </div>
+
+                    <div style={{ marginTop: 14 }}>
+                      {pendingReviews.length > 0 ? (
+                        pendingReviews.slice(0, 2).map((r) => {
+                          const initials = (r.reviewer_name || "Guest")
+                            .split(" ")
+                            .map((p) => p[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase();
+
+                          return (
+                            <div
+                              key={r.id}
+                              style={{
+                                padding: "16px",
+                                borderRadius: 14,
+                                border: "1px solid #f1f5f9",
+                                background: "#fbfcfe",
+                                marginBottom: 12,
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  flexWrap: "wrap",
+                                  gap: 10,
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                  <div
+                                    style={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: "50%",
+                                      background: "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)",
+                                      color: "#ffffff",
+                                      fontWeight: 800,
+                                      fontSize: 13,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      boxShadow: "0 2px 8px rgba(244, 63, 94, 0.25)",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {initials}
+                                  </div>
+                                  <div>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
+                                      {r.reviewer_name}
+                                    </div>
+                                    <span style={{ fontSize: 11.5, color: "#94a3b8" }}>
+                                      Penghuni Kamar • {listings[0]?.name || "Kost Havena"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    background: "#fef3c7",
+                                    color: "#b45309",
+                                    padding: "3px 10px",
+                                    borderRadius: 999,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    border: "1px solid #fde68a",
+                                  }}
+                                >
+                                  <span>★</span>
+                                  <span>{r.rating}.0</span>
+                                </div>
+                              </div>
+
+                              <p
+                                style={{
+                                  fontSize: 13,
+                                  color: "#334155",
+                                  fontStyle: "italic",
+                                  margin: "12px 0 0",
+                                  lineHeight: 1.6,
+                                  background: "#ffffff",
+                                  padding: "12px 14px",
+                                  borderRadius: 10,
+                                  border: "1px solid #f1f5f9",
+                                }}
+                              >
+                                “{r.comment}”
+                              </p>
+
+                              <div
+                                style={{
+                                  marginTop: 14,
+                                  paddingTop: 10,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "flex-end",
+                                  gap: 10,
+                                }}
+                              >
+                                <button
+                                  type="button"
+                                  className="btn"
+                                  style={{
+                                    padding: "7px 14px",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: "#64748b",
+                                    background: "#f1f5f9",
+                                    borderRadius: 8,
+                                  }}
+                                  onClick={() => handleRejectReview(r.id)}
+                                >
+                                  Tolak
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-emerald"
+                                  style={{
+                                    padding: "7px 18px",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    borderRadius: 8,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                  }}
+                                  onClick={() => setShowVerifyModal(r)}
+                                >
+                                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                  <span>Verifikasi</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div
+                          style={{
+                            padding: "36px 16px",
+                            textAlign: "center",
+                            borderRadius: 14,
+                            border: "1.5px dashed #e2e8f0",
+                            background: "#fafafa",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: "50%",
+                              background: "#ecfdf5",
+                              color: "#059669",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              margin: "0 auto 10px",
+                              fontSize: 20,
+                            }}
+                          >
+                            ✓
+                          </div>
+                          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#1e293b" }}>
+                            Semua ulasan telah diverifikasi
+                          </div>
+                          <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>
+                            Tidak ada ulasan baru yang menunggu tindakan saat ini.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT COLUMN (4 COLS) */}
+                <div>
+                  {/* WIDGET 3: Pemasukan Sewa Bar Chart */}
+                  <div className="dash-panel-card">
+                    <div className="dash-panel-header">
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span className="dash-indicator-bar dash-indicator-teal" />
+                        <h3 style={{ fontSize: 15, fontWeight: 800, color: "#1e293b", margin: 0 }}>
+                          Pemasukan Sewa
+                        </h3>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 600 }}>Total 30 Hari</div>
+                          <div
+                            style={{
+                              fontSize: 22,
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              letterSpacing: "-0.4px",
+                              fontFamily: "var(--font-mono)",
+                              marginTop: 2,
+                            }}
+                          >
+                            {totalIncome > 0 ? fmtRp(totalIncome) : "Rp 18.500.000"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bar Chart SVG */}
+                      <div style={{ width: "100%", paddingTop: 4 }}>
+                        <svg
+                          style={{ width: "100%", height: 160, display: "block", overflow: "visible" }}
+                          preserveAspectRatio="none"
+                          viewBox="0 0 350 160"
+                        >
+                          <line stroke="#f1f5f9" strokeDasharray="3,3" strokeWidth="1" x1="28" x2="345" y1="25" y2="25" />
+                          <line stroke="#f1f5f9" strokeDasharray="3,3" strokeWidth="1" x1="28" x2="345" y1="75" y2="75" />
+                          <line stroke="#e2e8f0" strokeWidth="1" x1="28" x2="345" y1="125" y2="125" />
+
+                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="28">4jt</text>
+                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="78">2jt</text>
+                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="128">0</text>
+
+                          {/* Bar 1 */}
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="52" y="48">2,8</text>
+                          <rect fill="#14b8a6" height="70" opacity="0.85" rx="3" width="20" x="42" y="55" />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="52" y="143">1 Nov</text>
+
+                          {/* Bar 2 */}
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="100" y="33">3,4</text>
+                          <rect fill="#0d9488" height="85" opacity="0.9" rx="3" width="20" x="90" y="40" />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="100" y="143">5 Nov</text>
+
+                          {/* Bar 3 */}
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="148" y="56">2,5</text>
+                          <rect fill="#14b8a6" height="62" opacity="0.85" rx="3" width="20" x="138" y="63" />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="148" y="143">10 Nov</text>
+
+                          {/* Bar 4 */}
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="196" y="66">2,1</text>
+                          <rect fill="#14b8a6" height="52" opacity="0.85" rx="3" width="20" x="186" y="73" />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="196" y="143">15 Nov</text>
+
+                          {/* Bar 5 */}
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="244" y="70">1,9</text>
+                          <rect fill="#14b8a6" height="48" opacity="0.85" rx="3" width="20" x="234" y="77" />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="244" y="143">20 Nov</text>
+
+                          {/* Bar 6 */}
+                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="292" y="58">2,4</text>
+                          <rect fill="#14b8a6" height="60" opacity="0.85" rx="3" width="20" x="282" y="65" />
+                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="292" y="143">25 Nov</text>
+
+                          {/* Bar 7 (Hari Ini) */}
+                          <text fill="#0f766e" fontSize="9.5" fontWeight="700" textAnchor="middle" x="336" y="33">3,4</text>
+                          <rect fill="#0f766e" height="85" rx="3" width="20" x="326" y="40" />
+                          <text fill="#0f766e" fontSize="9.5" fontWeight="700" textAnchor="middle" x="336" y="143">Hari Ini</text>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WIDGET 4: Status Langganan */}
+                  <div className="dash-panel-card">
+                    <div className="dash-panel-header">
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span className="dash-indicator-bar dash-indicator-purple" />
+                        <h2 style={{ fontSize: 16, fontWeight: 800, color: "#1e293b", margin: 0 }}>
+                          Status Langganan
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn"
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          padding: "5px 12px",
+                          borderRadius: 8,
+                          border: "1px solid #c7d2fe",
+                          color: "#4338ca",
+                          background: "#eef2ff",
+                        }}
+                        onClick={() => handleTabChange("subs")}
+                      >
+                        Upgrade
+                      </button>
+                    </div>
+
+                    <div style={{ marginTop: 16 }}>
+                      {/* Badges */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                        <span
+                          style={{
+                            padding: "5px 12px",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 800,
+                            background: "#f0fdfa",
+                            color: "#0f766e",
+                            border: "1px solid #ccfbf1",
+                          }}
+                        >
+                          Paket Featured 6 Bulan
+                        </span>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "5px 10px",
+                            borderRadius: 8,
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            background: "#ecfdf5",
+                            color: "#047857",
+                            border: "1px solid #a7f3d0",
+                          }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
+                          <span>Aktif</span>
+                        </span>
+                      </div>
+
+                      {/* Details Box */}
+                      <div
+                        style={{
+                          padding: "14px",
+                          borderRadius: 12,
+                          background: "#f8fafc",
+                          border: "1px solid #f1f5f9",
+                          fontSize: 12.5,
+                          color: "#475569",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        <p style={{ margin: 0 }}>
+                          Masa aktif berakhir pada <strong style={{ color: "#0f172a" }}>31 Desember 2026</strong>{" "}
+                          <span style={{ color: "#d97706", fontWeight: 700 }}>(43 hari tersisa)</span>.
+                        </p>
+                        <p style={{ margin: "6px 0 0", color: "#64748b" }}>
+                          Kuota listing: <strong style={{ color: "#334155" }}>Unlimited</strong> dengan lencana{" "}
+                          <span style={{ color: "#4f46e5", fontWeight: 700, textDecoration: "underline" }}>
+                            Kost Pilihan
+                          </span>{" "}
+                          di hasil pencarian teratas.
+                        </p>
+                      </div>
+
+                      {/* Action Link */}
+                      <div style={{ textAlign: "center", paddingTop: 14 }}>
+                        <button
+                          type="button"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 12.5,
+                            fontWeight: 800,
+                            color: "#4f46e5",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => handleTabChange("subs")}
+                        >
+                          <span>Perpanjang / Kelola Paket</span>
+                          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* WIDGET 5: Jatuh Tempo Sewa */}
+                  <div className="dash-panel-card">
+                    <div className="dash-panel-header">
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span className="dash-indicator-bar dash-indicator-sky" />
+                        <h3 style={{ fontSize: 15, fontWeight: 800, color: "#1e293b", margin: 0 }}>
+                          Jatuh Tempo Sewa
+                        </h3>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "#4f46e5",
+                          background: "#eef2ff",
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                        }}
+                      >
+                        Des 2026
+                      </span>
+                    </div>
+
+                    <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          background: "#f8fafc",
+                          border: "1px solid #f1f5f9",
+                          fontSize: 12,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444" }} />
+                          <div>
+                            <div style={{ fontWeight: 800, color: "#1e293b" }}>Kamar 202 - Dimas A.</div>
+                            <div style={{ fontSize: 10.5, color: "#94a3b8" }}>Jatuh tempo: Besok</div>
+                          </div>
+                        </div>
+                        <span style={{ fontWeight: 800, color: "#334155", fontFamily: "var(--font-mono)" }}>
+                          Rp 850.000
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          background: "#f8fafc",
+                          border: "1px solid #f1f5f9",
+                          fontSize: 12,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#f59e0b" }} />
+                          <div>
+                            <div style={{ fontWeight: 800, color: "#1e293b" }}>Kamar 105 - Siti Nur</div>
+                            <div style={{ fontSize: 10.5, color: "#94a3b8" }}>Jatuh tempo: 3 hari lagi</div>
+                          </div>
+                        </div>
+                        <span style={{ fontWeight: 800, color: "#334155", fontFamily: "var(--font-mono)" }}>
+                          Rp 1.100.000
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 12px",
+                          borderRadius: 10,
+                          background: "#f8fafc",
+                          border: "1px solid #f1f5f9",
+                          fontSize: 12,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#0d9488" }} />
+                          <div>
+                            <div style={{ fontWeight: 800, color: "#1e293b" }}>Kamar 304 - Budi P.</div>
+                            <div style={{ fontSize: 10.5, color: "#94a3b8" }}>Jatuh tempo: 5 hari lagi</div>
+                          </div>
+                        </div>
+                        <span style={{ fontWeight: 800, color: "#334155", fontFamily: "var(--font-mono)" }}>
+                          Rp 1.250.000
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 2. LISTING SAYA TAB */}
         {activeTab === "listings" && (

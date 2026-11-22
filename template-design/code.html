@@ -1,0 +1,867 @@
+<!DOCTYPE html><html lang="id"><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Mitra Kost - Ringkasan Kost Dashboard</title>
+<!-- Tailwind CSS CDN with forms & container queries plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Tailwind Custom Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              purple: '#6C4AB6',
+              deepIndigo: '#1E1B4B',
+              coral: '#FF6452',
+              teal: '#00B8A9',
+              blue: '#2B86C5'
+            }
+          },
+          boxShadow: {
+            'card': '0 4px 20px -2px rgba(108, 74, 182, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04)',
+            'card-hover': '0 10px 25px -4px rgba(108, 74, 182, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05)',
+            'window': '0 25px 60px -15px rgba(30, 27, 75, 0.35)',
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Styles -->
+<style data-purpose="base-decorations">
+    body {
+      background: radial-gradient(circle at 10% 20%, #7663e2 0%, #5d52cc 45%, #4640a3 100%);
+      min-height: 100vh;
+    }
+
+    /* Custom thin scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f4;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Stat Card Wave Overlays mimicking reference dashboard */
+    .stat-pattern-purple {
+      background: linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #6d28d9 100%);
+    }
+    .stat-pattern-coral {
+      background: linear-gradient(135deg, #f97316 0%, #fb923c 45%, #ef4444 100%);
+    }
+    .stat-pattern-teal {
+      background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #059669 100%);
+    }
+    .stat-pattern-blue {
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 55%, #0369a1 100%);
+    }
+
+    /* SVG decorative wave backgrounds for metric cards */
+    .stat-wave {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 70%;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    /* Donut chart stroke dashes */
+    .gauge-circle {
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 0.8s ease;
+    }
+  </style>
+<!-- END: Custom Styles -->
+</head>
+<body class="font-sans antialiased text-slate-700 bg-[#f8fafc] min-h-screen"><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Mitra Kost - Ringkasan Kost Dashboard</title>
+<!-- Tailwind CSS CDN with forms & container queries plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Tailwind Custom Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              purple: '#6C4AB6',
+              deepIndigo: '#1E1B4B',
+              coral: '#FF6452',
+              teal: '#00B8A9',
+              blue: '#2B86C5'
+            }
+          },
+          boxShadow: {
+            'card': '0 4px 20px -2px rgba(108, 74, 182, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04)',
+            'card-hover': '0 10px 25px -4px rgba(108, 74, 182, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05)',
+            'window': '0 25px 60px -15px rgba(30, 27, 75, 0.35)',
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Styles -->
+<style data-purpose="base-decorations">
+    body {
+      background: radial-gradient(circle at 10% 20%, #7663e2 0%, #5d52cc 45%, #4640a3 100%);
+      min-height: 100vh;
+    }
+
+    /* Custom thin scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f4;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Stat Card Wave Overlays mimicking reference dashboard */
+    .stat-pattern-purple {
+      background: linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #6d28d9 100%);
+    }
+    .stat-pattern-coral {
+      background: linear-gradient(135deg, #f97316 0%, #fb923c 45%, #ef4444 100%);
+    }
+    .stat-pattern-teal {
+      background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #059669 100%);
+    }
+    .stat-pattern-blue {
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 55%, #0369a1 100%);
+    }
+
+    /* SVG decorative wave backgrounds for metric cards */
+    .stat-wave {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 70%;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    /* Donut chart stroke dashes */
+    .gauge-circle {
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 0.8s ease;
+    }
+  </style>
+<!-- END: Custom Styles -->
+
+<svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Mitra Kost - Ringkasan Kost Dashboard</title>
+<!-- Tailwind CSS CDN with forms & container queries plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Tailwind Custom Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              purple: '#6C4AB6',
+              deepIndigo: '#1E1B4B',
+              coral: '#FF6452',
+              teal: '#00B8A9',
+              blue: '#2B86C5'
+            }
+          },
+          boxShadow: {
+            'card': '0 4px 20px -2px rgba(108, 74, 182, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04)',
+            'card-hover': '0 10px 25px -4px rgba(108, 74, 182, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05)',
+            'window': '0 25px 60px -15px rgba(30, 27, 75, 0.35)',
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: Custom Styles -->
+<style data-purpose="base-decorations">
+    body {
+      background: radial-gradient(circle at 10% 20%, #7663e2 0%, #5d52cc 45%, #4640a3 100%);
+      min-height: 100vh;
+    }
+
+    /* Custom thin scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f4;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Stat Card Wave Overlays mimicking reference dashboard */
+    .stat-pattern-purple {
+      background: linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #6d28d9 100%);
+    }
+    .stat-pattern-coral {
+      background: linear-gradient(135deg, #f97316 0%, #fb923c 45%, #ef4444 100%);
+    }
+    .stat-pattern-teal {
+      background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #059669 100%);
+    }
+    .stat-pattern-blue {
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 55%, #0369a1 100%);
+    }
+
+    /* SVG decorative wave backgrounds for metric cards */
+    .stat-wave {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 70%;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    /* Donut chart stroke dashes */
+    .gauge-circle {
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dashoffset 0.8s ease;
+    }
+  </style>
+<!-- END: Custom Styles -->
+
+
+<!-- BEGIN: Main App Container Frame (Mac-styled window as in SchoolMentor) -->
+<div class="w-full min-h-screen bg-[#f8fafc] flex flex-col" data-purpose="app-shell">
+<!-- Window Control Bar -->
+
+<!-- Layout Body: Sidebar + Main Content -->
+<div class="flex flex-1 overflow-hidden h-full">
+<!-- BEGIN: Sidebar Navigation -->
+<aside class="w-20 md:w-64 bg-white text-slate-600 flex flex-col justify-between transition-all duration-300 flex-shrink-0 border-r border-slate-200" data-purpose="sidebar">
+<!-- Sidebar Top: Brand & Menu -->
+<div>
+<!-- Brand Logo -->
+<div class="px-5 py-6 flex items-center space-x-3 border-b border-slate-100">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 flex-shrink-0">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="hidden md:flex flex-col">
+
+<span class="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-1.5 py-0.5 rounded tracking-wider uppercase mt-1 w-fit">MITRA</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="p-3 space-y-1.5 font-medium text-sm"><!-- Beranda (Active) -->
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-lg bg-indigo-50 text-indigo-700 font-semibold transition-all" href="#">
+<div class="flex items-center space-x-3">
+<svg class="w-5 h-5 flex-shrink-0 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="hidden md:inline">Beranda</span>
+</div>
+</a>
+<!-- Listing Saya -->
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all" href="#">
+<div class="flex items-center space-x-3">
+<svg class="w-5 h-5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="hidden md:inline">Listing Saya</span>
+</div>
+<span class="hidden md:inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">3</span>
+</a>
+<!-- Ulasan -->
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all" href="#">
+<div class="flex items-center space-x-3">
+<svg class="w-5 h-5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="hidden md:inline">Ulasan</span>
+</div>
+<span class="hidden md:inline-flex items-center px-2 py-0.5 text-[11px] font-bold rounded-full bg-rose-500 text-white">Baru</span>
+</a>
+<!-- Keuangan -->
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all" href="#">
+<div class="flex items-center space-x-3">
+<svg class="w-5 h-5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="hidden md:inline">Keuangan</span>
+</div>
+</a>
+<!-- Langganan -->
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all" href="#">
+<div class="flex items-center space-x-3">
+<svg class="w-5 h-5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="hidden md:inline">Langganan</span>
+</div>
+</a>
+<!-- Notifikasi -->
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all" href="#">
+<div class="flex items-center space-x-3">
+<svg class="w-5 h-5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="hidden md:inline">Notifikasi</span>
+</div>
+<span class="hidden md:inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-rose-500 text-white">1</span>
+</a>
+<!-- Profil Mitra -->
+<a class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all" href="#">
+<div class="flex items-center space-x-3">
+<svg class="w-5 h-5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="hidden md:inline">Profil Mitra</span>
+</div>
+</a></nav>
+</div>
+<!-- Sidebar Bottom: User Profile Info -->
+<div class="p-3 border-t border-slate-200">
+<div class="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow">
+                R
+              </div>
+<div class="hidden md:block truncate text-left">
+<div class="text-xs font-bold text-slate-800 truncate">Ratna Kusuma</div>
+<div class="text-[11px] text-slate-500 truncate">ratna.kusuma@gm...</div>
+</div>
+</div>
+<button class="hidden md:block text-slate-400 hover:text-slate-600 transition-colors p-1" title="Keluar">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</div>
+</aside>
+<!-- END: Sidebar Navigation -->
+<!-- BEGIN: Main Dashboard Content Area -->
+<main class="flex-1 overflow-y-auto bg-[#f8f9fd] flex flex-col" data-purpose="main-content">
+<!-- Top Header Bar -->
+<header class="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-200/80 sticky top-0 z-20 shadow-sm">
+<!-- Page title & breadcrumb -->
+<div class="flex items-center space-x-3">
+<span class="text-xs font-semibold px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100/80">MITRA KOST</span>
+<span class="text-slate-300">/</span>
+<span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Ringkasan Kost</span>
+</div>
+<!-- Top Search & Quick Actions -->
+<div class="flex items-center space-x-4">
+<!-- Search Bar -->
+<div class="relative w-64 md:w-80">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</span>
+<input class="w-full text-xs pl-9 pr-4 py-2 bg-slate-100 hover:bg-slate-200/70 focus:bg-white border-transparent focus:border-indigo-500 focus:ring-0 rounded-lg text-slate-700 placeholder-slate-400 transition-colors" placeholder="Cari kamar, transaksi, tamu..." type="text">
+</div>
+<!-- Messages Button -->
+<button class="relative p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+</button>
+<!-- Notifications Button -->
+<button class="relative p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-slate-100 transition-colors">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
+</button>
+</div>
+</header>
+<!-- Main Workspace Container -->
+<div class="p-6 md:p-8 space-y-6 flex-1">
+<!-- BEGIN: Dashboard Hero Title & Action -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" data-purpose="hero-title">
+<div>
+<h1 class="text-2xl md:text-3xl font-extrabold text-[#191932] tracking-tight">Ringkasan Kost</h1>
+<p class="text-sm text-slate-500 mt-1 font-medium">Pantau performa okupansi kamar, ulasan penghuni, dan arus kas kost Anda secara real-time.</p>
+</div>
+<div>
+<button class="inline-flex items-center space-x-2 bg-gradient-to-r from-teal-700 to-emerald-800 hover:from-teal-800 hover:to-emerald-900 text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow-md shadow-teal-900/20 active:scale-95 transition-all">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Tambah Unit Kost</span>
+</button>
+</div>
+</div>
+<!-- END: Dashboard Hero Title & Action -->
+<!-- BEGIN: Vibrant Gradient Stat Cards (Exact visual style from SchoolMentor image.png) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5" data-purpose="stat-cards-grid">
+<!-- Card 1: Listing Aktif (Purple/Violet Theme) -->
+<div class="relative overflow-hidden rounded-2xl stat-pattern-purple p-5 text-white shadow-card hover:shadow-card-hover transition-all">
+<!-- Background wave art -->
+<svg class="stat-wave" fill="currentColor" preserveAspectRatio="none" viewBox="0 0 200 100">
+<path d="M0,40 C50,90 120,10 200,60 L200,100 L0,100 Z"></path>
+</svg>
+<div class="relative z-10 flex flex-col justify-between h-full min-h-[110px]">
+<div class="flex items-start justify-between">
+<div class="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+<!-- Icon Building/Store -->
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="text-right">
+<span class="text-xs font-semibold uppercase tracking-wider text-purple-200">LISTING AKTIF</span>
+<div class="text-3xl font-extrabold tracking-tight mt-0.5">1</div>
+</div>
+</div>
+<div class="pt-3 flex items-center text-xs text-purple-100 font-medium">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2"></span>
+                  dari total 3 properti kost
+                </div>
+</div>
+</div>
+<!-- Card 2: Kamar Tersedia (Coral/Orange Theme) -->
+<div class="relative overflow-hidden rounded-2xl stat-pattern-coral p-5 text-white shadow-card hover:shadow-card-hover transition-all">
+<!-- Background wave art -->
+<svg class="stat-wave" fill="currentColor" preserveAspectRatio="none" viewBox="0 0 200 100">
+<path d="M0,50 C70,10 110,80 200,30 L200,100 L0,100 Z"></path>
+</svg>
+<div class="relative z-10 flex flex-col justify-between h-full min-h-[110px]">
+<div class="flex items-start justify-between">
+<div class="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+<!-- Icon Bed/Rooms -->
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="text-right">
+<span class="text-xs font-semibold uppercase tracking-wider text-orange-200">KAMAR TERSEDIA</span>
+<div class="text-3xl font-extrabold tracking-tight mt-0.5">5 <span class="text-lg font-semibold text-white/80">/ 26</span></div>
+</div>
+</div>
+<div class="pt-3 flex items-center justify-between text-xs text-orange-100 font-medium">
+<span>okupansi 81%</span>
+<span class="bg-white/20 px-2 py-0.5 rounded text-[11px] font-bold">21 Terisi</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Ulasan Masuk (Teal/Emerald Theme) -->
+<div class="relative overflow-hidden rounded-2xl stat-pattern-teal p-5 text-white shadow-card hover:shadow-card-hover transition-all">
+<!-- Background wave art -->
+<svg class="stat-wave" fill="currentColor" preserveAspectRatio="none" viewBox="0 0 200 100">
+<path d="M0,60 C60,20 140,80 200,40 L200,100 L0,100 Z"></path>
+</svg>
+<div class="relative z-10 flex flex-col justify-between h-full min-h-[110px]">
+<div class="flex items-start justify-between">
+<div class="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+<!-- Icon Reviews/Stars -->
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="text-right">
+<span class="text-xs font-semibold uppercase tracking-wider text-teal-200">ULASAN MASUK</span>
+<div class="text-3xl font-extrabold tracking-tight mt-0.5">2</div>
+</div>
+</div>
+<div class="pt-3 flex items-center text-xs text-teal-100 font-medium">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-300 mr-2"></span>
+                  1 menunggu verifikasi
+                </div>
+</div>
+</div>
+<!-- Card 4: Saldo Bulan Ini (Sky Blue/Cyan Theme) -->
+<div class="relative overflow-hidden rounded-2xl stat-pattern-blue p-5 text-white shadow-card hover:shadow-card-hover transition-all">
+<!-- Background wave art -->
+<svg class="stat-wave" fill="currentColor" preserveAspectRatio="none" viewBox="0 0 200 100">
+<path d="M0,30 C80,80 130,20 200,50 L200,100 L0,100 Z"></path>
+</svg>
+<div class="relative z-10 flex flex-col justify-between h-full min-h-[110px]">
+<div class="flex items-start justify-between">
+<div class="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+<!-- Icon Cash/Money -->
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="text-right">
+<span class="text-xs font-semibold uppercase tracking-wider text-sky-200">SALDO BULAN INI</span>
+<div class="text-2xl lg:text-[23px] xl:text-2xl font-extrabold tracking-tight mt-0.5">Rp 1.775.000</div>
+</div>
+</div>
+<div class="pt-3 flex items-center text-xs text-sky-100 font-medium">
+<span>pemasukan: <strong class="text-white">Rp 2.300.000</strong></span>
+</div>
+</div>
+</div>
+</div>
+<!-- END: Vibrant Gradient Stat Cards -->
+<!-- BEGIN: Middle Dashboard Layout (2 Columns: Main Widgets + Secondary Column) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- LEFT/MAIN COLUMN (8 COLS) -->
+<div class="lg:col-span-8 space-y-6">
+<!-- WIDGET 1: Dual Wave Chart (Tren Okupansi & Arus Kas) -->
+<div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-card" data-purpose="occupancy-flow-chart"><!-- Header & Controls -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-100 gap-4">
+  <div>
+    <div class="flex items-center space-x-2.5">
+      <span class="w-1.5 h-5 bg-teal-600 rounded-full inline-block"></span>
+      <h2 class="font-bold text-slate-800 text-lg tracking-tight">Tren Okupansi Kamar</h2>
+    </div>
+    <p class="text-xs text-slate-500 mt-1 pl-4">Ringkasan dan riwayat tingkat hunian kamar kost bulanan</p>
+  </div>
+  <!-- Segmented Controls -->
+  <div class="inline-flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200/80 self-start sm:self-auto">
+    <button class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-teal-800 shadow-sm transition-all" type="button">30 Hari&nbsp;</button>
+    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all" type="button">6 Bulan</button>
+    <button class="px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all" type="button">1 Tahun</button>
+  </div>
+</div>
+
+<!-- Metric Summary Strip -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 my-5">
+  <!-- Metric 1: Okupansi Saat Ini -->
+  <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+    <span class="text-xs font-medium text-slate-500">Okupansi Saat Ini</span>
+    <div class="flex items-baseline space-x-2 mt-1.5">
+      <span class="text-2xl font-bold text-slate-800">81%</span>
+      <span class="text-xs text-slate-500 font-medium">(21/26 kamar)</span>
+    </div>
+    <div class="mt-2">
+      <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">+4% bulan ini</span>
+    </div>
+  </div>
+  <!-- Metric 2: Sewa Tertagih -->
+  <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+    <span class="text-xs font-medium text-slate-500">Sewa Tertagih</span>
+    <div class="flex items-baseline space-x-2 mt-1.5">
+      <span class="text-2xl font-bold text-teal-700">Rp 18,5jt</span>
+    </div>
+    <div class="mt-2 text-xs text-slate-500 font-medium">
+      88% dari total target pemasukan
+    </div>
+  </div>
+  <!-- Metric 3: Tunggakan (Warning Highlight) -->
+  <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200/80 flex flex-col justify-between">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-semibold text-rose-600">Tunggakan Sewa</span>
+      <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+    </div>
+    <div class="flex items-baseline space-x-1 mt-1.5">
+      <span class="text-2xl font-bold text-rose-600">Rp 2,5jt</span>
+    </div>
+    <div class="mt-2 text-xs font-semibold text-rose-500">
+      3 kamar belum melunasi
+    </div>
+  </div>
+</div>
+
+<!-- CHART 1: Tren Okupansi Kamar (%) -->
+<div class="pt-2 pb-6 border-b border-slate-100">
+  <div class="flex items-center justify-between mb-3">
+    <div class="flex items-center space-x-2">
+      <span class="w-2 h-2 rounded-full bg-teal-600"></span>
+      <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">1. Tren Okupansi Kamar (%)</span>
+    </div>
+    <span class="text-[11px] text-slate-400 font-medium">Persentase kamar terhuni</span>
+  </div>
+  <div class="flex items-stretch pt-2">
+    <!-- Y-axis -->
+    <div class="flex flex-col justify-between text-[11px] font-medium text-slate-400 pr-3 pb-6 text-right select-none h-44">
+      <span>100%</span>
+      <span>80%</span>
+      <span>60%</span>
+      <span>40%</span>
+      <span>20%</span>
+      <span>0%</span>
+    </div>
+    <!-- Chart Graphic -->
+    <div class="flex-1 min-w-0">
+      <div class="relative h-44 w-full">
+        <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 650 160">
+          <defs>
+            <linearGradient id="lineChartGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#0d9488" stop-opacity="0.25"></stop>
+              <stop offset="100%" stop-color="#0d9488" stop-opacity="0.01"></stop>
+            </linearGradient>
+          </defs>
+          <!-- Grid lines -->
+          <line stroke="#f1f5f9" stroke-dasharray="4,4" stroke-width="1" x1="0" x2="650" y1="10" y2="10"></line>
+          <line stroke="#f1f5f9" stroke-dasharray="4,4" stroke-width="1" x1="0" x2="650" y1="42" y2="42"></line>
+          <line stroke="#f1f5f9" stroke-dasharray="4,4" stroke-width="1" x1="0" x2="650" y1="74" y2="74"></line>
+          <line stroke="#f1f5f9" stroke-dasharray="4,4" stroke-width="1" x1="0" x2="650" y1="106" y2="106"></line>
+          <line stroke="#f1f5f9" stroke-dasharray="4,4" stroke-width="1" x1="0" x2="650" y1="138" y2="138"></line>
+          <line stroke="#e2e8f0" stroke-width="1.5" x1="0" x2="650" y1="160" y2="160"></line>
+          <!-- Area Fill -->
+          <path d="M25,90 C70,68 100,56 125,56 C170,56 200,52 225,50 C270,48 300,44 325,41 C370,39 400,36 425,35 C470,34 500,32 525,31 C570,31 600,29 625,28 L625,160 L25,160 Z" fill="url(#lineChartGrad)"></path>
+          <!-- Smooth Curve Line -->
+          <path d="M25,90 C70,68 100,56 125,56 C170,56 200,52 225,50 C270,48 300,44 325,41 C370,39 400,36 425,35 C470,34 500,32 525,31 C570,31 600,29 625,28" fill="none" stroke="#0d9488" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+          <!-- Data Points -->
+          <circle cx="25" cy="90" fill="#ffffff" r="4" stroke="#0d9488" stroke-width="2.5"></circle>
+          <circle cx="125" cy="56" fill="#ffffff" r="4" stroke="#0d9488" stroke-width="2.5"></circle>
+          <circle cx="225" cy="50" fill="#ffffff" r="4" stroke="#0d9488" stroke-width="2.5"></circle>
+          <circle cx="325" cy="41" fill="#ffffff" r="4" stroke="#0d9488" stroke-width="2.5"></circle>
+          <circle cx="425" cy="35" fill="#ffffff" r="4" stroke="#0d9488" stroke-width="2.5"></circle>
+          <circle cx="525" cy="31" fill="#ffffff" r="4" stroke="#0d9488" stroke-width="2.5"></circle>
+          <circle cx="625" cy="28" fill="#ffffff" r="5" stroke="#0d9488" stroke-width="3"></circle>
+          <!-- Active Tooltip Callout on Hari Ini (Latest) -->
+          <g transform="translate(440, 2)">
+            <rect fill="#1e1b4b" height="24" rx="6" width="180" x="0" y="0"></rect>
+            <polygon fill="#1e1b4b" points="170,24 178,28 174,24"></polygon>
+            <text fill="#ffffff" font-size="10" font-weight="600" x="10" y="16">Hari Ini: 81% • 21/26 terisi</text>
+          </g>
+        </svg>
+      </div>
+      <!-- X-axis Labels -->
+      <div class="flex justify-between text-[11px] font-medium text-slate-400 mt-2 px-2">
+        <span>1 Nov</span>
+        <span>5 Nov</span>
+        <span>10 Nov</span>
+        <span>15 Nov</span>
+        <span>20 Nov</span>
+        <span>25 Nov</span>
+        <span class="font-bold text-teal-700">Hari Ini</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHART 2: Pemasukan Sewa (Rp) -->
+</div>
+<!-- WIDGET 2: Ulasan Menunggu Verifikasi (Indonesian copy from original https://lh3.googleusercontent.com/aida-public/AB6AXuCHWuCMNkjlH4vyWztffO-TM6Xwjc6doNPUTeazNxR7NPdR3e7rL_sPlV4eSAooBGj2JWvwmDiyRbfwOprIkhCtMbASc-VFOcwj5FOH_TlqfazGrEKBPq8SPM4tEdaelEo5C5hkfdReQToPLZdnue8FeTVAM-IgEYkdZekJj74LfEqEwP1q1Mx22RAAX5lLYGWYBSMz70Vi20V3ErT7HhscCdqtw8LdKwrFTGyoU8Z9s7x83UvH-Zlp) -->
+<div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-card" data-purpose="pending-reviews-widget">
+<div class="flex items-center justify-between pb-4 border-b border-slate-100">
+<div class="flex items-center space-x-2">
+<span class="w-1.5 h-4 bg-teal-600 rounded-full inline-block"></span>
+<h2 class="font-bold text-slate-800 text-base">Ulasan Menunggu Verifikasi</h2>
+</div>
+<button class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">
+                    Lihat Semua
+                  </button>
+</div>
+<!-- Review Card Content -->
+<div class="mt-4 p-5 rounded-xl border border-slate-100 bg-[#fbfcfe] hover:border-slate-200 transition-all">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+<div class="flex items-center space-x-3">
+<!-- Avatar -->
+<div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-rose-400 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                        NP
+                      </div>
+<div>
+<h4 class="font-bold text-slate-800 text-sm">Nabila Putri</h4>
+<span class="text-xs text-slate-400">Penghuni Kamar 104 • Kost Paviliun Melati</span>
+</div>
+</div>
+<!-- Rating Badge -->
+<div class="flex items-center space-x-1 bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full text-xs font-bold w-fit border border-amber-200/60">
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+<span>4.0</span>
+</div>
+</div>
+<!-- Review Body Text -->
+<p class="text-slate-600 text-sm italic mt-3.5 leading-relaxed bg-white p-3 rounded-lg border border-slate-100">
+                    “Kamar bersih dan AC dingin. Parkiran motor aman ada CCTV 24 jam.”
+                  </p>
+<!-- Actions -->
+<div class="mt-4 pt-3 flex items-center justify-end space-x-3">
+<button class="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                      Tolak
+                    </button>
+<button class="px-5 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm shadow-teal-600/30 transition-all flex items-center space-x-1.5">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Verifikasi</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN (4 COLS) -->
+<div class="lg:col-span-4 space-y-6"><div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-card" data-purpose="revenue-chart-card">  <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+    <div class="flex items-center space-x-2">
+      <span class="w-1.5 h-4 bg-teal-600 inline-block"></span>
+      <h3 class="font-bold text-slate-800 text-sm tracking-tight">Pemasukan Sewa</h3>
+    </div>
+    
+  </div>
+  <div class="mt-3.5">
+    <div class="flex items-baseline justify-between mb-4">
+      <div>
+        <div class="text-xs text-slate-400 font-medium">Total 30 Hari</div>
+        <div class="text-xl font-extrabold text-slate-800 tracking-tight mt-0.5">Rp 18.500.000</div>
+      </div>
+      
+    </div>
+    <div class="w-full pt-1">
+      <svg class="w-full h-44 overflow-visible" preserveAspectRatio="none" viewBox="0 0 350 160">
+        <!-- Horizontal reference grid lines -->
+        <line stroke="#f1f5f9" stroke-dasharray="3,3" stroke-width="1" x1="28" x2="345" y1="25" y2="25"></line>
+        <line stroke="#f1f5f9" stroke-dasharray="3,3" stroke-width="1" x1="28" x2="345" y1="75" y2="75"></line>
+        <line stroke="#e2e8f0" stroke-width="1" x1="28" x2="345" y1="125" y2="125"></line>
+        <!-- Y-axis minimalist labels -->
+        <text fill="#94a3b8" font-size="9" font-weight="500" text-anchor="end" x="22" y="28">4jt</text>
+        <text fill="#94a3b8" font-size="9" font-weight="500" text-anchor="end" x="22" y="78">2jt</text>
+        <text fill="#94a3b8" font-size="9" font-weight="500" text-anchor="end" x="22" y="128">0</text>
+        <!-- Bar 1: 1 Nov (2.8jt -> height 70) -->
+        <text fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle" x="52" y="48">2,8</text>
+        <rect fill="#14b8a6" height="70" opacity="0.85" rx="3" width="20" x="42" y="55"></rect>
+        <text fill="#94a3b8" font-size="9.5" font-weight="500" text-anchor="middle" x="52" y="143">1 Nov</text>
+        <!-- Bar 2: 5 Nov (3.4jt -> height 85) -->
+        <text fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle" x="100" y="33">3,4</text>
+        <rect fill="#0d9488" height="85" opacity="0.9" rx="3" width="20" x="90" y="40"></rect>
+        <text fill="#94a3b8" font-size="9.5" font-weight="500" text-anchor="middle" x="100" y="143">5 Nov</text>
+        <!-- Bar 3: 10 Nov (2.5jt -> height 62) -->
+        <text fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle" x="148" y="56">2,5</text>
+        <rect fill="#14b8a6" height="62" opacity="0.85" rx="3" width="20" x="138" y="63"></rect>
+        <text fill="#94a3b8" font-size="9.5" font-weight="500" text-anchor="middle" x="148" y="143">10 Nov</text>
+        <!-- Bar 4: 15 Nov (2.1jt -> height 52) -->
+        <text fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle" x="196" y="66">2,1</text>
+        <rect fill="#14b8a6" height="52" opacity="0.85" rx="3" width="20" x="186" y="73"></rect>
+        <text fill="#94a3b8" font-size="9.5" font-weight="500" text-anchor="middle" x="196" y="143">15 Nov</text>
+        <!-- Bar 5: 20 Nov (1.9jt -> height 48) -->
+        <text fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle" x="244" y="70">1,9</text>
+        <rect fill="#14b8a6" height="48" opacity="0.85" rx="3" width="20" x="234" y="77"></rect>
+        <text fill="#94a3b8" font-size="9.5" font-weight="500" text-anchor="middle" x="244" y="143">20 Nov</text>
+        <!-- Bar 6: 25 Nov (2.4jt -> height 60) -->
+        <text fill="#64748b" font-size="9.5" font-weight="600" text-anchor="middle" x="292" y="58">2,4</text>
+        <rect fill="#14b8a6" height="60" opacity="0.85" rx="3" width="20" x="282" y="65"></rect>
+        <text fill="#94a3b8" font-size="9.5" font-weight="500" text-anchor="middle" x="292" y="143">25 Nov</text>
+        <!-- Bar 7: Hari Ini (3.4jt -> height 85, highlighted teal) -->
+        <text fill="#0f766e" font-size="9.5" font-weight="700" text-anchor="middle" x="336" y="33">3,4</text>
+        <rect fill="#0f766e" height="85" rx="3" width="20" x="326" y="40"></rect>
+        <text fill="#0f766e" font-size="9.5" font-weight="700" text-anchor="middle" x="336" y="143">Hari Ini</text>
+      </svg>
+    </div>
+  </div></div>
+<!-- WIDGET 3: Status Langganan (Featured Mitra Status from https://lh3.googleusercontent.com/aida-public/AB6AXuCHWuCMNkjlH4vyWztffO-TM6Xwjc6doNPUTeazNxR7NPdR3e7rL_sPlV4eSAooBGj2JWvwmDiyRbfwOprIkhCtMbASc-VFOcwj5FOH_TlqfazGrEKBPq8SPM4tEdaelEo5C5hkfdReQToPLZdnue8FeTVAM-IgEYkdZekJj74LfEqEwP1q1Mx22RAAX5lLYGWYBSMz70Vi20V3ErT7HhscCdqtw8LdKwrFTGyoU8Z9s7x83UvH-Zlp) -->
+<div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-card" data-purpose="subscription-status-widget">
+<div class="flex items-center justify-between pb-4 border-b border-slate-100">
+<div class="flex items-center space-x-2">
+<span class="w-1.5 h-4 bg-purple-600 rounded-full inline-block"></span>
+<h2 class="font-bold text-slate-800 text-base">Status Langganan</h2>
+</div>
+<button class="text-xs font-bold px-3 py-1 rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100 transition-colors">
+                    Upgrade
+                  </button>
+</div>
+<div class="mt-5 space-y-4">
+<!-- Badges: Package & Active -->
+<div class="flex items-center space-x-2 flex-wrap gap-y-2">
+<span class="px-3 py-1 rounded-lg text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200">
+                      Paket Featured 6 Bulan
+                    </span>
+<span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<span>Aktif</span>
+</span>
+</div>
+<!-- Subscription Details Text -->
+<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600 space-y-2 leading-relaxed">
+<p>
+                      Masa aktif berakhir pada <strong class="text-slate-800">31 Desember 2026</strong> <span class="text-amber-600 font-semibold">(43 hari tersisa)</span>.
+                    </p>
+<p class="text-slate-500">
+                      Kuota listing: <strong class="text-slate-700">Unlimited</strong> dengan lencana <span class="text-indigo-600 font-semibold underline decoration-indigo-200">Kost Pilihan</span> di hasil pencarian teratas.
+                    </p>
+</div>
+<!-- Action Link -->
+<div class="text-center pt-2">
+<a class="inline-flex items-center space-x-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors" href="#">
+<span>Perpanjang / Kelola Paket</span>
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</a>
+</div>
+</div>
+</div>
+<!-- WIDGET 4: Donut Radial Gauges (Okupansi & Performa - SchoolMentor Style) -->
+
+<!-- WIDGET 5: Jadwal Jatuh Tempo & Pengingat Sewa -->
+<div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-card" data-purpose="schedule-reminders">
+<div class="flex items-center justify-between pb-3 border-b border-slate-100">
+<div class="flex items-center space-x-2">
+<span class="w-1.5 h-4 bg-sky-500 rounded-full inline-block"></span>
+<h3 class="font-bold text-slate-800 text-sm">Jatuh Tempo Sewa</h3>
+</div>
+<span class="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">Des 2026</span>
+</div>
+<div class="mt-3 space-y-2.5">
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50/40 transition-colors text-xs">
+<div class="flex items-center space-x-2.5">
+<div class="w-2 h-2 rounded-full bg-rose-500"></div>
+<div>
+<div class="font-bold text-slate-800">Kamar 202 - Dimas A.</div>
+<div class="text-[10px] text-slate-400">Jatuh tempo: Besok</div>
+</div>
+</div>
+<span class="font-bold text-slate-700">Rp 850.000</span>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50/40 transition-colors text-xs">
+<div class="flex items-center space-x-2.5">
+<div class="w-2 h-2 rounded-full bg-amber-500"></div>
+<div>
+<div class="font-bold text-slate-800">Kamar 105 - Siti Nur</div>
+<div class="text-[10px] text-slate-400">Jatuh tempo: 3 hari lagi</div>
+</div>
+</div>
+<span class="font-bold text-slate-700">Rp 1.100.000</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- END: Middle Dashboard Layout -->
+</div>
+<!-- END: Main Workspace Container -->
+</main>
+<!-- END: Main Dashboard Content Area -->
+</div>
+</div>
+<!-- END: Main App Container Frame -->
+
+
+</body></html>

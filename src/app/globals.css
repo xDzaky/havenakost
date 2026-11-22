@@ -1375,6 +1375,223 @@ footer::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;back
   .dash-mobile-dock-btn .dock-dot{position:absolute;top:6px;right:calc(50% - 13px);width:7px;height:7px;border-radius:50%;background:var(--rose);border:1.5px solid #fff}
 }
 
+/* ============ OWNER DASHBOARD MODERN TEMPLATE ============ */
+.stat-pattern-purple {
+  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #6d28d9 100%);
+}
+.stat-pattern-coral {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 45%, #ef4444 100%);
+}
+.stat-pattern-teal {
+  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #059669 100%);
+}
+.stat-pattern-blue {
+  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 55%, #0369a1 100%);
+}
+.stat-wave {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 70%;
+  opacity: 0.18;
+  pointer-events: none;
+}
+.shadow-card {
+  box-shadow: 0 4px 20px -2px rgba(108, 74, 182, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+}
+.shadow-card-hover {
+  box-shadow: 0 10px 25px -4px rgba(108, 74, 182, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+}
+
+.dash-vibrant-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.dash-vibrant-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 20px;
+  color: #ffffff;
+  box-shadow: var(--sh-sm);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+.dash-vibrant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-md);
+}
+.dash-vibrant-inner {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  min-height: 112px;
+}
+.dash-vibrant-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.dash-vibrant-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dash-vibrant-num {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin-top: 2px;
+  text-align: right;
+}
+.dash-vibrant-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.88;
+  text-align: right;
+}
+.dash-vibrant-footer {
+  padding-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  margin-top: 12px;
+}
+
+/* Dashboard Middle 2-Column Workspace */
+.dash-middle-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  gap: 22px;
+  margin-bottom: 24px;
+  align-items: start;
+}
+.dash-panel-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  margin-bottom: 22px;
+  transition: box-shadow 0.2s ease;
+}
+.dash-panel-card:hover {
+  box-shadow: 0 8px 25px -4px rgba(15, 23, 42, 0.08);
+}
+.dash-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dash-indicator-bar {
+  width: 5px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.dash-indicator-teal { background: #0d9488; }
+.dash-indicator-purple { background: #7c3aed; }
+.dash-indicator-sky { background: #0284c7; }
+.dash-indicator-coral { background: #f97316; }
+
+/* Metric Summary 3-Strip */
+.dash-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 18px 0;
+}
+.dash-metric-item {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.dash-metric-item.danger-tint {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+/* Time tabs toggle button group */
+.dash-seg-controls {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+.dash-seg-btn {
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.dash-seg-btn.active {
+  background: #ffffff;
+  color: #0f766e;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 1023px) {
+  .dash-vibrant-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .dash-middle-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 767px) {
+  .dash-vibrant-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .dash-metric-strip {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .dash-panel-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+}
 
 /* ============ TOPBAR SEAMLESS HERO INTEGRATION ============ */
 
