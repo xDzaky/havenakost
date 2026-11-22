@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -107,14 +107,263 @@ export default function OwnerDashboard() {
     "Data KTP dan izin usaha perlu dilengkapi kembali.",
   );
 
-  // Profile data
+  // Map and Location references
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+
+  // Profile data with Google Maps coordinates
   const [profile, setProfile] = useState({
     fullName: "Ratna Kusuma Dewi",
     businessName: "Griya Cendekia Management",
     phone: "6281234567890",
     email: "ratna.kusuma@gmail.com",
     address: "Jl. Bendungan Sigura-gura No. 14, Lowokwaru, Kota Malang",
+    latitude: -7.9525,
+    longitude: 112.6135,
+    googleMapsUrl: "https://www.google.com/maps?q=-7.9525,112.6135",
   });
+
+  const [mapsInput, setMapsInput] = useState("");
+  const [isLocating, setIsLocating] = useState(false);
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Restore saved profile & maps coordinates from local storage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("havena_owner_profile");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setProfile((prev) => ({
+          ...prev,
+          ...parsed,
+          latitude: parsed.latitude ? Number(parsed.latitude) : prev.latitude,
+          longitude: parsed.longitude ? Number(parsed.longitude) : prev.longitude,
+          googleMapsUrl:
+            parsed.googleMapsUrl ||
+            `https://www.google.com/maps?q=${parsed.latitude || -7.9525},${parsed.longitude || 112.6135}`,
+        }));
+      }
+    } catch (e) {}
+  }, []);
+
+  const applyCoordinates = useCallback((lat: number, lng: number) => {
+    const roundedLat = parseFloat(lat.toFixed(6));
+    const roundedLng = parseFloat(lng.toFixed(6));
+    const mapsUrl = `https://www.google.com/maps?q=${roundedLat},${roundedLng}`;
+
+    setProfile((prev) => ({
+      ...prev,
+      latitude: roundedLat,
+      longitude: roundedLng,
+      googleMapsUrl: mapsUrl,
+    }));
+
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo({ center: [roundedLng, roundedLat], zoom: 16 });
+    }
+    if (markerRef.current) {
+      markerRef.current.setLngLat([roundedLng, roundedLat]);
+    }
+  }, []);
+
+  const handleUseGPS = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      alert("Browser Anda tidak mendukung fitur Geolocation.");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        applyCoordinates(pos.coords.latitude, pos.coords.longitude);
+      },
+      (err) => {
+        setIsLocating(false);
+        alert("Gagal membaca GPS: " + err.message + ". Pastikan izin lokasi aktif.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleApplyMapsInput = async () => {
+    const query = mapsInput.trim();
+    if (!query) return;
+
+    // Pattern 1: Raw Lat, Lng directly (-7.9525, 112.6135)
+    const coordMatch = query.match(/([-+]?\d{1,2}\.\d+)[,\s]+([-+]?\d{1,3}\.\d+)/);
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lng = parseFloat(coordMatch[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        applyCoordinates(lat, lng);
+        setMapsInput("");
+        return;
+      }
+    }
+
+    // Pattern 2: Google Maps URL query string
+    const urlCoordMatch = query.match(/[@?&](?:q=|ll=|loc:)?([-+]?\d{1,2}\.\d+)[,/]([-+]?\d{1,3}\.\d+)/);
+    if (urlCoordMatch) {
+      const lat = parseFloat(urlCoordMatch[1]);
+      const lng = parseFloat(urlCoordMatch[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        applyCoordinates(lat, lng);
+        setMapsInput("");
+        return;
+      }
+    }
+
+    // Pattern 3: Text search via Nominatim
+    try {
+      setIsLocating(true);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          query + ", Malang, Jawa Timur"
+        )}&limit=1`,
+        { headers: { "Accept-Language": "id" } }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        applyCoordinates(parseFloat(data[0].lat), parseFloat(data[0].lon));
+        setMapsInput("");
+      } else {
+        alert("Lokasi tidak ditemukan. Coba masukkan nama jalan/kampus atau koordinat langsung.");
+      }
+    } catch (e) {
+      alert("Gagal mencari lokasi. Silakan klik atau geser pin langsung pada peta.");
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const handleReverseGeocode = async () => {
+    if (!profile.latitude || !profile.longitude) return;
+    try {
+      setIsReverseGeocoding(true);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${profile.latitude}&lon=${profile.longitude}`,
+        { headers: { "Accept-Language": "id" } }
+      );
+      const data = await res.json();
+      if (data && data.display_name) {
+        setProfile((prev) => ({
+          ...prev,
+          address: data.display_name,
+        }));
+      }
+    } catch (e) {
+    } finally {
+      setIsReverseGeocoding(false);
+    }
+  };
+
+  // Map initialization when Profile tab is active
+  useEffect(() => {
+    if (activeTab !== "profile") return;
+
+    let isCancelled = false;
+
+    const initMap = async () => {
+      await new Promise((r) => setTimeout(r, 80));
+      if (isCancelled || !mapContainerRef.current) return;
+
+      let maplibregl: any = (window as any).maplibregl;
+      if (!maplibregl) {
+        try {
+          const mod = (await import("maplibre-gl")) as any;
+          maplibregl = mod.default || mod;
+        } catch (e) {
+          return;
+        }
+      }
+      if (isCancelled || !mapContainerRef.current) return;
+
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.resize();
+        } catch (e) {}
+        return;
+      }
+
+      const initialLng = profile.longitude || 112.6135;
+      const initialLat = profile.latitude || -7.9525;
+
+      const map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: "https://tiles.openfreemap.org/styles/bright",
+        center: [initialLng, initialLat],
+        zoom: 15,
+        attributionControl: false,
+      });
+
+      map.addControl(
+        new maplibregl.NavigationControl({ showCompass: true, showZoom: true }),
+        "top-right"
+      );
+
+      const markerEl = document.createElement("div");
+      markerEl.className = "hk-map-picker-pin";
+      markerEl.style.width = "38px";
+      markerEl.style.height = "38px";
+      markerEl.style.display = "flex";
+      markerEl.style.alignItems = "center";
+      markerEl.style.justifyContent = "center";
+      markerEl.style.cursor = "grab";
+      markerEl.innerHTML = `
+        <div style="width:34px;height:34px;background:#EF4444;border:2.5px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 6px 18px rgba(239,68,68,0.5);display:flex;align-items:center;justify-content:center;">
+          <span style="transform:rotate(45deg);color:#fff;font-size:14px;font-weight:900;">🏠</span>
+        </div>
+      `;
+
+      const marker = new maplibregl.Marker({
+        element: markerEl,
+        draggable: true,
+        anchor: "bottom",
+      })
+        .setLngLat([initialLng, initialLat])
+        .addTo(map);
+
+      marker.on("dragend", () => {
+        const lngLat = marker.getLngLat();
+        applyCoordinates(lngLat.lat, lngLat.lng);
+      });
+
+      map.on("click", (e: any) => {
+        marker.setLngLat(e.lngLat);
+        applyCoordinates(e.lngLat.lat, e.lngLat.lng);
+      });
+
+      map.on("load", () => {
+        if (!isCancelled) {
+          map.resize();
+        }
+      });
+
+      mapInstanceRef.current = map;
+      markerRef.current = marker;
+    };
+
+    initMap();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeTab, applyCoordinates, profile.latitude, profile.longitude]);
+
+  // Clean up map on unmount
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.remove();
+        } catch (e) {}
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, []);
 
   // Listings state
   const [listings, setListings] = useState<Listing[]>([
@@ -1122,157 +1371,6 @@ export default function OwnerDashboard() {
                   }}
                 >
                   pemasukan {fmtRp(totalIncome)}
-                </div>
-              </div>
-            </div>
-
-            {/* CHECKLIST AWAL */}
-            <div
-              className="dash-table-card"
-              style={{
-                padding: "20px 24px",
-                background: "linear-gradient(135deg, #F0FDFA, #FFFFFF)",
-                border: "1.5px solid var(--emerald-soft)",
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: 15,
-                  fontWeight: 800,
-                  color: "var(--teal-950)",
-                  marginBottom: 6,
-                }}
-              >
-                Langkah Awal Mitra Havena Kost
-              </h3>
-              <p
-                style={{
-                  fontSize: 12.5,
-                  color: "var(--mut)",
-                  marginBottom: 16,
-                }}
-              >
-                Selesaikan tahapan berikut agar kost Anda cepat ditemukan dan
-                terpercaya di mata calon penyewa.
-              </p>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    fontSize: 12.5,
-                    color: "var(--teal-950)",
-                    fontWeight: 600,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: "50%",
-                      background: "var(--emerald)",
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 11,
-                      flexShrink: 0,
-                    }}
-                  >
-                    ✓
-                  </span>
-                  Lengkapi Profil Akun Mitra
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    fontSize: 12.5,
-                    color: "var(--teal-950)",
-                    fontWeight: 600,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: "50%",
-                      background: "var(--emerald)",
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 11,
-                      flexShrink: 0,
-                    }}
-                  >
-                    ✓
-                  </span>
-                  Buat Listing & Upload Foto
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    fontSize: 12.5,
-                    color: "var(--teal-950)",
-                    fontWeight: 600,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: "50%",
-                      background: "var(--emerald)",
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 11,
-                      flexShrink: 0,
-                    }}
-                  >
-                    ✓
-                  </span>
-                  Atur Kamar & Generate QR
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    fontSize: 12.5,
-                    color: "var(--teal-950)",
-                    fontWeight: 600,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: "50%",
-                      background: "var(--emerald)",
-                      color: "#fff",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 11,
-                      flexShrink: 0,
-                    }}
-                  >
-                    ✓
-                  </span>
-                  Ajukan untuk Publikasi Admin
                 </div>
               </div>
             </div>
@@ -2377,12 +2475,20 @@ export default function OwnerDashboard() {
               </div>
             </div>
 
-            <div className="dash-table-card" style={{ maxWidth: 640 }}>
+            <div className="dash-table-card" style={{ maxWidth: 740 }}>
               <div style={{ padding: 24 }}>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    alert("Perubahan profil berhasil disimpan!");
+                    try {
+                      localStorage.setItem(
+                        "havena_owner_profile",
+                        JSON.stringify(profile)
+                      );
+                    } catch (err) {}
+                    alert(
+                      `Perubahan profil berhasil disimpan!\nTitik lokasi kost telah ditandai di Google Maps (${profile.latitude}, ${profile.longitude}).`
+                    );
                   }}
                 >
                   <div style={{ marginBottom: 16 }}>
@@ -2468,7 +2574,7 @@ export default function OwnerDashboard() {
                     </div>
                   </div>
 
-                  <div style={{ marginBottom: 20 }}>
+                  <div style={{ marginBottom: 18 }}>
                     <label
                       style={{
                         fontSize: 12,
@@ -2481,11 +2587,222 @@ export default function OwnerDashboard() {
                     </label>
                     <input
                       className="finput"
+                      placeholder="cth: Jl. Bendungan Sigura-gura No. 14, Lowokwaru, Kota Malang"
                       value={profile.address}
                       onChange={(e) =>
                         setProfile({ ...profile, address: e.target.value })
                       }
+                      required
                     />
+                  </div>
+
+                  {/* SET LOKASI GOOGLE MAPS / PENANDA TITIK KOST */}
+                  <div
+                    style={{
+                      background: "linear-gradient(135deg, #F8FAFC, #F0FDFA)",
+                      border: "1.5px solid var(--emerald-soft)",
+                      borderRadius: 16,
+                      padding: "18px 16px",
+                      marginBottom: 24,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: 12,
+                        flexWrap: "wrap",
+                        gap: 8,
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <span style={{ fontSize: 16 }}>📍</span>
+                          <span
+                            style={{
+                              fontSize: 13.5,
+                              fontWeight: 800,
+                              color: "var(--teal-950)",
+                            }}
+                          >
+                            Titik Lokasi Kost (Google Maps)
+                          </span>
+                        </div>
+                        <p
+                          style={{
+                            fontSize: 11.5,
+                            color: "var(--mut)",
+                            marginTop: 2,
+                          }}
+                        >
+                          Tandai titik gerbang/lokasi kost agar calon penyewa
+                          dapat menemukan rute yang akurat di Google Maps.
+                        </p>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className="btn btn-emerald btn-sm"
+                          onClick={handleUseGPS}
+                          disabled={isLocating}
+                          style={{ fontSize: 11, padding: "6px 12px" }}
+                        >
+                          {isLocating ? "Mencari GPS..." : "📍 Lokasi GPS Saya"}
+                        </button>
+                        <a
+                          href={profile.googleMapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: 11, padding: "6px 12px" }}
+                        >
+                          Buka Google Maps ↗
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Quick Search or Paste Google Maps URL */}
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        marginBottom: 12,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <input
+                        className="finput"
+                        placeholder="Tempel link Google Maps atau cari nama jalan / kampus..."
+                        value={mapsInput}
+                        onChange={(e) => setMapsInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleApplyMapsInput();
+                          }
+                        }}
+                        style={{ flex: 1, minWidth: 200, fontSize: 12 }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-line btn-sm"
+                        onClick={handleApplyMapsInput}
+                        disabled={isLocating}
+                        style={{ whiteSpace: "nowrap" }}
+                      >
+                        {isLocating ? "Memproses..." : "Cari / Terapkan Titik"}
+                      </button>
+                    </div>
+
+                    {/* Interactive Map Picker */}
+                    <div
+                      style={{
+                        position: "relative",
+                        marginBottom: 12,
+                        borderRadius: 14,
+                        overflow: "hidden",
+                        border: "1.5px solid var(--line)",
+                        boxShadow: "var(--sh-sm)",
+                      }}
+                    >
+                      <div
+                        ref={mapContainerRef}
+                        className="map-picker-container"
+                        style={{ height: 280 }}
+                      />
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: 10,
+                          left: 10,
+                          right: 10,
+                          background: "rgba(15, 23, 42, 0.78)",
+                          color: "#fff",
+                          padding: "6px 10px",
+                          borderRadius: 8,
+                          fontSize: 10.5,
+                          textAlign: "center",
+                          backdropFilter: "blur(4px)",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        💡 <b>Petunjuk:</b> Klik di mana saja pada peta atau geser pin merah 🏠 untuk menyesuaikan titik lokasi kost Anda.
+                      </div>
+                    </div>
+
+                    {/* Current Coordinate and Action Bar */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 14px",
+                        background: "#fff",
+                        border: "1px solid var(--line)",
+                        borderRadius: 12,
+                        flexWrap: "wrap",
+                        gap: 10,
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "var(--mut)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Koordinat Tersimpan:
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 12.5,
+                            fontWeight: 800,
+                            fontFamily: "var(--font-mono)",
+                            color: "var(--teal-950)",
+                          }}
+                        >
+                          {profile.latitude}, {profile.longitude}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={handleReverseGeocode}
+                          disabled={isReverseGeocoding}
+                          title="Ambil alamat lengkap dari titik pin di peta"
+                          style={{ fontSize: 11 }}
+                        >
+                          {isReverseGeocoding
+                            ? "Membaca Alamat..."
+                            : "Gunakan Alamat dari Peta"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-line btn-sm"
+                          onClick={() => {
+                            if (typeof window !== "undefined" && navigator.clipboard) {
+                              navigator.clipboard.writeText(profile.googleMapsUrl);
+                              setCopiedLink(true);
+                              setTimeout(() => setCopiedLink(false), 2000);
+                            }
+                          }}
+                          style={{ fontSize: 11 }}
+                        >
+                          {copiedLink ? "✓ Tersalin!" : "Salin Link Maps"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <button
@@ -2493,7 +2810,7 @@ export default function OwnerDashboard() {
                     className="btn btn-emerald"
                     style={{ width: "100%", minHeight: 44 }}
                   >
-                    Simpan Perubahan Profil
+                    Simpan Perubahan Profil & Titik Lokasi
                   </button>
                 </form>
               </div>
