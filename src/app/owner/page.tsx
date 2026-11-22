@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -57,6 +57,9 @@ export default function OwnerDashboard() {
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string } | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
+  // Responsive mobile drawer state
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem("havena_session");
@@ -87,8 +90,17 @@ export default function OwnerDashboard() {
     "dash" | "listings" | "reviews" | "finance" | "subs" | "notif" | "profile"
   >("dash");
 
+  // Tab switch handler with auto-close drawer and smooth scroll to top
+  const handleTabChange = useCallback((tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setMobileNavOpen(false);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, []);
+
   // Account status
-  const [approvalStatus, setApprovalStatus] = useState<
+  const [approvalStatus] = useState<
     "pending" | "approved" | "rejected" | "suspended"
   >("approved");
   const [rejectionReason] = useState(
@@ -282,8 +294,51 @@ export default function OwnerDashboard() {
   const [overrideReason, setOverrideReason] = useState("");
 
   const [showPayModal, setShowPayModal] = useState(false);
-  const [payPlan, setPayPlan] = useState("Paket Featured 6 Bulan (Rp 450.000)");
+  const [payPlan] = useState("Paket Featured 6 Bulan (Rp 450.000)");
   const [proofUrl, setProofUrl] = useState("");
+
+  // Lock body scroll when drawer or any modal is open
+  useEffect(() => {
+    const isAnyModalOpen =
+      mobileNavOpen ||
+      showAddListing ||
+      showAddTx ||
+      showVerifyModal !== null ||
+      showReplyModal !== null ||
+      showPayModal;
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [
+    mobileNavOpen,
+    showAddListing,
+    showAddTx,
+    showVerifyModal,
+    showReplyModal,
+    showPayModal,
+  ]);
+
+  // Dismiss on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileNavOpen(false);
+        setShowAddListing(false);
+        setShowAddTx(false);
+        setShowVerifyModal(null);
+        setShowReplyModal(null);
+        setShowPayModal(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -399,45 +454,181 @@ export default function OwnerDashboard() {
 
   if (isLoadingAuth) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--bg)",
+        }}
+      >
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--teal-950)" }}>Memverifikasi sesi login...</div>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: "var(--teal-950)",
+            }}
+          >
+            Memverifikasi sesi login...
+          </div>
         </div>
       </div>
     );
   }
 
+  // Active tab labels for header breadcrumb
+  const tabTitles: Record<string, string> = {
+    dash: "Ringkasan Kost",
+    listings: "Listing Properti",
+    reviews: "Ulasan Penghuni",
+    finance: "Arus Kas Keuangan",
+    subs: "Paket Langganan",
+    notif: "Pusat Notifikasi",
+    profile: "Profil Akun Mitra",
+  };
+
   return (
     <div className="dash-layout">
-      {/* SIDEBAR */}
-      <aside className="dash-sidebar">
-        <Link href="/" className="dash-brand">
-          <img
-            src="/image/HavenaKost.svg"
-            alt="Havena Kost"
-            className="brand-logo-img"
-            style={{ height: 36 }}
-          />
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              color: "var(--emerald)",
-              background: "var(--emerald-soft2)",
-              padding: "2px 8px",
-              borderRadius: 6,
-              border: "1px solid var(--emerald-soft)",
-            }}
+      {/* MOBILE STICKY TOPBAR (Visible on tablet & mobile < 1024px) */}
+      <header className="dash-mobile-header" aria-label="Menu navigasi atas">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            type="button"
+            className="dash-mobile-menu-btn"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Buka menu navigasi"
           >
-            MITRA
-          </span>
-        </Link>
+            <svg
+              className="ic"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              style={{ width: 20, height: 20 }}
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <Link
+            href="/"
+            style={{ display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <img
+              src="/image/HavenaKost.svg"
+              alt="Havena Kost"
+              style={{ height: 28 }}
+            />
+            <span
+              style={{
+                fontSize: 9.5,
+                fontWeight: 800,
+                color: "var(--emerald)",
+                background: "var(--emerald-soft2)",
+                padding: "2px 6px",
+                borderRadius: 5,
+                border: "1px solid var(--emerald-soft)",
+              }}
+            >
+              MITRA
+            </span>
+          </Link>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            type="button"
+            className="dash-mobile-icon-btn"
+            onClick={() => handleTabChange("notif")}
+            title="Notifikasi"
+            aria-label="Notifikasi"
+          >
+            <svg
+              className="ic"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={{ width: 18, height: 18 }}
+            >
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            {unreadCount > 0 && (
+              <span className="dash-mobile-badge">{unreadCount}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            className="dash-mobile-avatar-btn"
+            onClick={() => handleTabChange("profile")}
+            title="Profil Akun"
+            aria-label="Profil Akun"
+          >
+            {(currentUser?.name || profile.fullName).charAt(0)}
+          </button>
+        </div>
+      </header>
+
+      {/* MOBILE DRAWER BACKDROP */}
+      <div
+        className={`dash-drawer-backdrop ${mobileNavOpen ? "open" : ""}`}
+        onClick={() => setMobileNavOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* SIDEBAR (Desktop fixed left, Mobile slide-over drawer) */}
+      <aside
+        className={`dash-sidebar ${mobileNavOpen ? "mobile-open" : ""}`}
+        aria-label="Sidebar Navigasi"
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 20,
+          }}
+        >
+          <Link href="/" className="dash-brand" style={{ marginBottom: 0 }}>
+            <img
+              src="/image/HavenaKost.svg"
+              alt="Havena Kost"
+              className="brand-logo-img"
+              style={{ height: 34 }}
+            />
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                color: "var(--emerald)",
+                background: "var(--emerald-soft2)",
+                padding: "2px 8px",
+                borderRadius: 6,
+                border: "1px solid var(--emerald-soft)",
+              }}
+            >
+              MITRA
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="dash-sidebar-close"
+            onClick={() => setMobileNavOpen(false)}
+            aria-label="Tutup menu navigasi"
+          >
+            ✕
+          </button>
+        </div>
 
         <nav className="dash-nav">
           <button
             type="button"
             className={`dash-nav-btn ${activeTab === "dash" ? "active" : ""}`}
-            onClick={() => setActiveTab("dash")}
+            onClick={() => handleTabChange("dash")}
           >
             <svg
               className="ic"
@@ -457,7 +648,7 @@ export default function OwnerDashboard() {
           <button
             type="button"
             className={`dash-nav-btn ${activeTab === "listings" ? "active" : ""}`}
-            onClick={() => setActiveTab("listings")}
+            onClick={() => handleTabChange("listings")}
           >
             <svg
               className="ic"
@@ -477,6 +668,9 @@ export default function OwnerDashboard() {
                 fontSize: 11,
                 fontWeight: 700,
                 color: "var(--mut)",
+                background: "var(--bg)",
+                padding: "2px 7px",
+                borderRadius: 6,
               }}
             >
               {listings.length}
@@ -486,7 +680,7 @@ export default function OwnerDashboard() {
           <button
             type="button"
             className={`dash-nav-btn ${activeTab === "reviews" ? "active" : ""}`}
-            onClick={() => setActiveTab("reviews")}
+            onClick={() => handleTabChange("reviews")}
           >
             <svg
               className="ic"
@@ -506,7 +700,7 @@ export default function OwnerDashboard() {
           <button
             type="button"
             className={`dash-nav-btn ${activeTab === "finance" ? "active" : ""}`}
-            onClick={() => setActiveTab("finance")}
+            onClick={() => handleTabChange("finance")}
           >
             <svg
               className="ic"
@@ -525,7 +719,7 @@ export default function OwnerDashboard() {
           <button
             type="button"
             className={`dash-nav-btn ${activeTab === "subs" ? "active" : ""}`}
-            onClick={() => setActiveTab("subs")}
+            onClick={() => handleTabChange("subs")}
           >
             <svg
               className="ic"
@@ -543,7 +737,7 @@ export default function OwnerDashboard() {
           <button
             type="button"
             className={`dash-nav-btn ${activeTab === "notif" ? "active" : ""}`}
-            onClick={() => setActiveTab("notif")}
+            onClick={() => handleTabChange("notif")}
           >
             <svg
               className="ic"
@@ -564,7 +758,7 @@ export default function OwnerDashboard() {
           <button
             type="button"
             className={`dash-nav-btn ${activeTab === "profile" ? "active" : ""}`}
-            onClick={() => setActiveTab("profile")}
+            onClick={() => handleTabChange("profile")}
           >
             <svg
               className="ic"
@@ -593,6 +787,7 @@ export default function OwnerDashboard() {
               justifyContent: "center",
               fontWeight: 800,
               fontSize: 13,
+              flexShrink: 0,
             }}
           >
             {(currentUser?.name || profile.fullName).charAt(0)}
@@ -610,7 +805,15 @@ export default function OwnerDashboard() {
             >
               {currentUser?.name || profile.fullName}
             </div>
-            <div style={{ fontSize: 10.5, color: "var(--mut)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div
+              style={{
+                fontSize: 10.5,
+                color: "var(--mut)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               {currentUser?.email || profile.email}
             </div>
           </div>
@@ -625,10 +828,18 @@ export default function OwnerDashboard() {
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              padding: 4,
+              padding: 6,
+              borderRadius: 8,
             }}
+            aria-label="Logout"
           >
-            <svg style={{ width: 18, height: 18 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              style={{ width: 18, height: 18 }}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
@@ -637,7 +848,13 @@ export default function OwnerDashboard() {
           <Link
             href="/"
             title="Ke Halaman Publik"
-            style={{ color: "var(--mut)", display: "flex", padding: 4 }}
+            style={{
+              color: "var(--mut)",
+              display: "flex",
+              padding: 6,
+              borderRadius: 8,
+            }}
+            aria-label="Halaman Publik"
           >
             <svg
               viewBox="0 0 24 24"
@@ -655,6 +872,109 @@ export default function OwnerDashboard() {
         </div>
       </aside>
 
+      {/* MOBILE BOTTOM NAVIGATION DOCK (Native mobile feel for thumbs) */}
+      <nav className="dash-mobile-dock" aria-label="Navigasi Cepat Bawah">
+        <button
+          type="button"
+          className={`dash-mobile-dock-btn ${activeTab === "dash" ? "active" : ""}`}
+          onClick={() => handleTabChange("dash")}
+        >
+          <svg
+            className="dock-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          </svg>
+          <span>Beranda</span>
+        </button>
+
+        <button
+          type="button"
+          className={`dash-mobile-dock-btn ${activeTab === "listings" ? "active" : ""}`}
+          onClick={() => handleTabChange("listings")}
+        >
+          <svg
+            className="dock-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5 9.5V21h14V9.5" />
+            <path d="M9.5 21v-6h5v6" />
+          </svg>
+          <span>Listing</span>
+        </button>
+
+        <button
+          type="button"
+          className={`dash-mobile-dock-btn ${activeTab === "reviews" ? "active" : ""}`}
+          onClick={() => handleTabChange("reviews")}
+        >
+          <svg
+            className="dock-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+          <span>Ulasan</span>
+          {reviews.some((r) => r.publication_status === "pending") && (
+            <span className="dock-dot" />
+          )}
+        </button>
+
+        <button
+          type="button"
+          className={`dash-mobile-dock-btn ${activeTab === "finance" ? "active" : ""}`}
+          onClick={() => handleTabChange("finance")}
+        >
+          <svg
+            className="dock-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="M3 10h18" />
+            <circle cx="16" cy="14" r="1.5" />
+          </svg>
+          <span>Keuangan</span>
+        </button>
+
+        <button
+          type="button"
+          className={`dash-mobile-dock-btn ${
+            ["subs", "notif", "profile"].includes(activeTab) ? "active" : ""
+          }`}
+          onClick={() => setMobileNavOpen(true)}
+        >
+          <svg
+            className="dock-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="12" cy="12" r="1" />
+            <circle cx="12" cy="5" r="1" />
+            <circle cx="12" cy="19" r="1" />
+          </svg>
+          <span>Menu</span>
+          {unreadCount > 0 && <span className="dock-dot" />}
+        </button>
+      </nav>
+
       {/* MAIN CONTENT AREA */}
       <main className="dash-main">
         {/* BANNER STATUS SESUAI SPESIFIKASI */}
@@ -667,6 +987,7 @@ export default function OwnerDashboard() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
+              style={{ flexShrink: 0 }}
             >
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
@@ -688,6 +1009,7 @@ export default function OwnerDashboard() {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
+              style={{ flexShrink: 0 }}
             >
               <circle cx="12" cy="12" r="10" />
               <line x1="15" y1="9" x2="9" y2="15" />
@@ -705,7 +1027,7 @@ export default function OwnerDashboard() {
           <div>
             <div className="dash-head">
               <div>
-                <h1>Ringkasan Pengelolaan Kost</h1>
+                <h1>{tabTitles.dash}</h1>
                 <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
                   Pantau performa okupansi kamar, ulasan penghuni, dan arus kas
                   kost Anda.
@@ -719,15 +1041,21 @@ export default function OwnerDashboard() {
               </button>
             </div>
 
-            {/* KPI CARDS */}
+            {/* KPI CARDS (2x2 on mobile, 4 in row on desktop) */}
             <div className="dash-grid-kpi">
               <div className="dash-kpi-card">
                 <div className="kpi-label">Listing Aktif</div>
                 <div className="kpi-num" style={{ color: "var(--emerald)" }}>
                   {listings.filter((l) => l.status === "published").length}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 4 }}>
-                  dari {listings.length} total properti
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--mut)",
+                    marginTop: 4,
+                  }}
+                >
+                  dari {listings.length} properti
                 </div>
               </div>
 
@@ -737,7 +1065,13 @@ export default function OwnerDashboard() {
                   {listings.reduce((s, l) => s + l.available_rooms, 0)} /{" "}
                   {listings.reduce((s, l) => s + l.total_rooms, 0)}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 4 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--mut)",
+                    marginTop: 4,
+                  }}
+                >
                   okupansi{" "}
                   {Math.round(
                     ((listings.reduce((s, l) => s + l.total_rooms, 0) -
@@ -757,7 +1091,13 @@ export default function OwnerDashboard() {
                 <div className="kpi-num" style={{ color: "var(--gold-dark)" }}>
                   {reviews.length}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 4 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--mut)",
+                    marginTop: 4,
+                  }}
+                >
                   {
                     reviews.filter((r) => r.publication_status === "pending")
                       .length
@@ -768,10 +1108,19 @@ export default function OwnerDashboard() {
 
               <div className="dash-kpi-card">
                 <div className="kpi-label">Saldo Bulan Ini</div>
-                <div className="kpi-num" style={{ color: "var(--wa-dark)" }}>
+                <div
+                  className="kpi-num"
+                  style={{ color: "var(--wa-dark)", fontSize: 20 }}
+                >
                   {fmtRp(netBalance)}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--mut)", marginTop: 4 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--mut)",
+                    marginTop: 4,
+                  }}
+                >
                   pemasukan {fmtRp(totalIncome)}
                 </div>
               </div>
@@ -791,7 +1140,7 @@ export default function OwnerDashboard() {
                   fontSize: 15,
                   fontWeight: 800,
                   color: "var(--teal-950)",
-                  marginBottom: 8,
+                  marginBottom: 6,
                 }}
               >
                 Langkah Awal Mitra Havena Kost
@@ -809,7 +1158,7 @@ export default function OwnerDashboard() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
                   gap: 12,
                 }}
               >
@@ -834,6 +1183,7 @@ export default function OwnerDashboard() {
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: 11,
+                      flexShrink: 0,
                     }}
                   >
                     ✓
@@ -861,6 +1211,7 @@ export default function OwnerDashboard() {
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: 11,
+                      flexShrink: 0,
                     }}
                   >
                     ✓
@@ -888,11 +1239,12 @@ export default function OwnerDashboard() {
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: 11,
+                      flexShrink: 0,
                     }}
                   >
                     ✓
                   </span>
-                  Atur Kamar & Generate QR Code
+                  Atur Kamar & Generate QR
                 </div>
                 <div
                   style={{
@@ -915,6 +1267,7 @@ export default function OwnerDashboard() {
                       alignItems: "center",
                       justifyContent: "center",
                       fontSize: 11,
+                      flexShrink: 0,
                     }}
                   >
                     ✓
@@ -924,14 +1277,8 @@ export default function OwnerDashboard() {
               </div>
             </div>
 
-            {/* QUICK ACTIONS */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1.2fr 1fr",
-                gap: 20,
-              }}
-            >
+            {/* QUICK ACTIONS: Responsive 2-column or 1-column stack */}
+            <div className="dash-grid-2col">
               <div className="dash-table-card">
                 <div className="dt-head">
                   <h3
@@ -945,7 +1292,7 @@ export default function OwnerDashboard() {
                   </h3>
                   <button
                     className="btn btn-ghost btn-sm"
-                    onClick={() => setActiveTab("reviews")}
+                    onClick={() => handleTabChange("reviews")}
                   >
                     Lihat Semua
                   </button>
@@ -961,6 +1308,7 @@ export default function OwnerDashboard() {
                           border: "1px solid var(--line)",
                           borderRadius: 12,
                           marginBottom: 10,
+                          background: "#fff",
                         }}
                       >
                         <div
@@ -990,6 +1338,7 @@ export default function OwnerDashboard() {
                             gap: 8,
                             marginTop: 10,
                             justifyContent: "flex-end",
+                            flexWrap: "wrap",
                           }}
                         >
                           <button
@@ -1036,7 +1385,7 @@ export default function OwnerDashboard() {
                   </h3>
                   <button
                     className="btn btn-ghost btn-sm"
-                    onClick={() => setActiveTab("subs")}
+                    onClick={() => handleTabChange("subs")}
                   >
                     Upgrade
                   </button>
@@ -1048,6 +1397,7 @@ export default function OwnerDashboard() {
                       alignItems: "center",
                       gap: 12,
                       marginBottom: 14,
+                      flexWrap: "wrap",
                     }}
                   >
                     <span
@@ -1086,7 +1436,7 @@ export default function OwnerDashboard() {
                   <button
                     className="btn btn-line btn-sm"
                     style={{ marginTop: 16, width: "100%" }}
-                    onClick={() => setActiveTab("subs")}
+                    onClick={() => handleTabChange("subs")}
                   >
                     Perpanjang / Kelola Paket
                   </button>
@@ -1101,7 +1451,7 @@ export default function OwnerDashboard() {
           <div>
             <div className="dash-head">
               <div>
-                <h1>Listing Properti Kost</h1>
+                <h1>{tabTitles.listings}</h1>
                 <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
                   Kelola data properti, nomor kamar, harga, foto, dan kode QR
                   ulasan kamar.
@@ -1115,119 +1465,336 @@ export default function OwnerDashboard() {
               </button>
             </div>
 
-            <div className="dash-table-card">
-              <table className="dash-table">
-                <thead>
-                  <tr>
-                    <th>Foto & Nama Kost</th>
-                    <th>Tipe</th>
-                    <th>Harga / Bulan</th>
-                    <th>Kamar (Sisa/Total)</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {listings.map((item) => (
-                    <tr key={item.id}>
-                      <td>
+            {/* DESKTOP TABLE VIEW (Screens >= 768px) */}
+            <div className="dash-desktop-view">
+              <div className="dash-table-card">
+                <div className="dash-table-wrap">
+                  <table className="dash-table">
+                    <thead>
+                      <tr>
+                        <th>Foto & Nama Kost</th>
+                        <th>Tipe</th>
+                        <th>Harga / Bulan</th>
+                        <th>Kamar (Sisa/Total)</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {listings.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                              }}
+                            >
+                              <img
+                                src={item.photo_url}
+                                alt=""
+                                style={{
+                                  width: 52,
+                                  height: 38,
+                                  borderRadius: 8,
+                                  objectFit: "cover",
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <div>
+                                <div
+                                  style={{
+                                    fontWeight: 800,
+                                    color: "var(--ink)",
+                                  }}
+                                >
+                                  {item.name}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: "var(--faint)",
+                                  }}
+                                >
+                                  {item.district}, {item.region}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              style={{
+                                textTransform: "capitalize",
+                                fontWeight: 700,
+                                fontSize: 11.5,
+                              }}
+                            >
+                              {item.kost_type}
+                            </span>
+                          </td>
+                          <td>
+                            <b>{fmtRp(item.price_monthly)}</b>
+                          </td>
+                          <td>
+                            {item.available_rooms} / {item.total_rooms} kamar
+                          </td>
+                          <td>
+                            <span
+                              style={{
+                                padding: "3px 8px",
+                                borderRadius: 6,
+                                fontSize: 10.5,
+                                fontWeight: 800,
+                                textTransform: "uppercase",
+                                background:
+                                  item.status === "published"
+                                    ? "var(--wa-soft)"
+                                    : item.status === "pending"
+                                      ? "var(--gold-soft)"
+                                      : "var(--line)",
+                                color:
+                                  item.status === "published"
+                                    ? "var(--wa-dark)"
+                                    : item.status === "pending"
+                                      ? "var(--gold-dark)"
+                                      : "var(--mut)",
+                              }}
+                            >
+                              {item.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              {item.status === "draft" && (
+                                <button
+                                  className="btn btn-teal btn-sm"
+                                  onClick={() => handleSubmitListing(item.id)}
+                                >
+                                  Ajukan
+                                </button>
+                              )}
+                              <button
+                                className="btn btn-line btn-sm"
+                                onClick={() =>
+                                  alert(
+                                    `Buka QR Code Ulasan untuk ${item.name}: Cetak QR untuk ditempel di pintu kamar penghuni.`,
+                                  )
+                                }
+                              >
+                                QR Kamar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* MOBILE CARD VIEW (Screens < 768px, zero awkward scroll) */}
+            <div className="dash-mobile-view">
+              {listings.map((item) => {
+                const occPercent = Math.round(
+                  ((item.total_rooms - item.available_rooms) /
+                    Math.max(1, item.total_rooms)) *
+                    100,
+                );
+                return (
+                  <div key={item.id} className="dash-listing-mcard">
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <img
+                        src={item.photo_url}
+                        alt=""
+                        style={{
+                          width: 76,
+                          height: 60,
+                          borderRadius: 10,
+                          objectFit: "cover",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 12,
+                            gap: 6,
+                            marginBottom: 4,
                           }}
                         >
-                          <img
-                            src={item.photo_url}
-                            alt=""
+                          <span
                             style={{
-                              width: 52,
-                              height: 38,
-                              borderRadius: 8,
-                              objectFit: "cover",
+                              textTransform: "capitalize",
+                              fontWeight: 700,
+                              fontSize: 10,
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              background: "var(--emerald-soft2)",
+                              color: "var(--emerald-dark)",
                             }}
-                          />
-                          <div>
-                            <div style={{ fontWeight: 800, color: "var(--ink)" }}>
-                              {item.name}
-                            </div>
-                            <div
-                              style={{ fontSize: 11, color: "var(--faint)" }}
-                            >
-                              {item.district}, {item.region}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          style={{
-                            textTransform: "capitalize",
-                            fontWeight: 700,
-                            fontSize: 11.5,
-                          }}
-                        >
-                          {item.kost_type}
-                        </span>
-                      </td>
-                      <td>
-                        <b>{fmtRp(item.price_monthly)}</b>
-                      </td>
-                      <td>
-                        {item.available_rooms} / {item.total_rooms} kamar
-                      </td>
-                      <td>
-                        <span
-                          style={{
-                            padding: "3px 8px",
-                            borderRadius: 6,
-                            fontSize: 10.5,
-                            fontWeight: 800,
-                            textTransform: "uppercase",
-                            background:
-                              item.status === "published"
-                                ? "var(--wa-soft)"
-                                : item.status === "pending"
-                                  ? "var(--gold-soft)"
-                                  : "var(--line)",
-                            color:
-                              item.status === "published"
-                                ? "var(--wa-dark)"
-                                : item.status === "pending"
-                                  ? "var(--gold-dark)"
-                                  : "var(--mut)",
-                          }}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 6 }}>
-                          {item.status === "draft" && (
-                            <button
-                              className="btn btn-teal btn-sm"
-                              onClick={() => handleSubmitListing(item.id)}
-                            >
-                              Ajukan
-                            </button>
-                          )}
-                          <button
-                            className="btn btn-line btn-sm"
-                            onClick={() =>
-                              alert(
-                                `Buka QR Code Ulasan untuk ${item.name}: Cetak QR untuk ditempel di pintu kamar penghuni.`,
-                              )
-                            }
                           >
-                            QR Kamar
-                          </button>
+                            {item.kost_type}
+                          </span>
+                          <span
+                            style={{
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              fontSize: 9.5,
+                              fontWeight: 800,
+                              textTransform: "uppercase",
+                              background:
+                                item.status === "published"
+                                  ? "var(--wa-soft)"
+                                  : item.status === "pending"
+                                    ? "var(--gold-soft)"
+                                    : "var(--line)",
+                              color:
+                                item.status === "published"
+                                  ? "var(--wa-dark)"
+                                  : item.status === "pending"
+                                    ? "var(--gold-dark)"
+                                    : "var(--mut)",
+                            }}
+                          >
+                            {item.status}
+                          </span>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            fontSize: 13.5,
+                            color: "var(--ink)",
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {item.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "var(--faint)",
+                            marginTop: 2,
+                          }}
+                        >
+                          {item.district}, {item.region}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "8px 10px",
+                        background: "var(--bg)",
+                        borderRadius: 10,
+                        marginBottom: 10,
+                        fontSize: 12,
+                      }}
+                    >
+                      <div>
+                        <span style={{ color: "var(--mut)" }}>Harga: </span>
+                        <b style={{ color: "var(--emerald-dark)" }}>
+                          {fmtRp(item.price_monthly)}
+                        </b>
+                        <span style={{ fontSize: 10, color: "var(--mut)" }}>
+                          /bln
+                        </span>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{ color: "var(--mut)" }}>Kamar: </span>
+                        <b>
+                          {item.available_rooms}/{item.total_rooms}
+                        </b>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color:
+                              item.available_rooms > 0
+                                ? "var(--wa-dark)"
+                                : "var(--rose)",
+                            marginLeft: 4,
+                          }}
+                        >
+                          ({item.available_rooms > 0 ? "Tersedia" : "Penuh"})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Mini Occupancy Bar */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontSize: 10.5,
+                          color: "var(--mut)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        <span>Tingkat Okupansi</span>
+                        <b>{occPercent}%</b>
+                      </div>
+                      <div
+                        style={{
+                          height: 6,
+                          background: "#E2E8F0",
+                          borderRadius: 999,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${occPercent}%`,
+                            height: "100%",
+                            background:
+                              occPercent > 80
+                                ? "var(--emerald)"
+                                : "var(--teal)",
+                            borderRadius: 999,
+                            transition: "width 0.3s ease",
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Touch Action Buttons */}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {item.status === "draft" && (
+                        <button
+                          className="btn btn-teal btn-sm"
+                          style={{ flex: 1 }}
+                          onClick={() => handleSubmitListing(item.id)}
+                        >
+                          Ajukan
+                        </button>
+                      )}
+                      <button
+                        className="btn btn-line btn-sm"
+                        style={{ flex: 1 }}
+                        onClick={() =>
+                          alert(
+                            `Buka QR Code Ulasan untuk ${item.name}: Cetak QR untuk ditempel di pintu kamar penghuni.`,
+                          )
+                        }
+                      >
+                        QR Kamar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1237,7 +1804,7 @@ export default function OwnerDashboard() {
           <div>
             <div className="dash-head">
               <div>
-                <h1>Ulasan Penghuni & Moderasi</h1>
+                <h1>{tabTitles.reviews}</h1>
                 <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
                   Ulasan yang dikirim penghuni via QR code kamar harus
                   diverifikasi sebelum tampil di website publik.
@@ -1246,7 +1813,7 @@ export default function OwnerDashboard() {
             </div>
 
             <div className="dash-table-card">
-              <div style={{ padding: 20 }}>
+              <div style={{ padding: "16px 18px" }}>
                 {reviews.map((r) => (
                   <div
                     key={r.id}
@@ -1263,6 +1830,8 @@ export default function OwnerDashboard() {
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "flex-start",
+                        flexWrap: "wrap",
+                        gap: 8,
                       }}
                     >
                       <div>
@@ -1339,9 +1908,11 @@ export default function OwnerDashboard() {
                         marginTop: 14,
                         paddingTop: 12,
                         borderTop: "1px solid var(--line)",
+                        flexWrap: "wrap",
+                        gap: 10,
                       }}
                     >
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div>
                         <span
                           style={{
                             fontSize: 11,
@@ -1358,7 +1929,13 @@ export default function OwnerDashboard() {
                             : "Menunggu Verifikasi"}
                         </span>
                       </div>
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          flexWrap: "wrap",
+                        }}
+                      >
                         {r.publication_status === "pending" && (
                           <>
                             <button
@@ -1398,13 +1975,13 @@ export default function OwnerDashboard() {
           <div>
             <div className="dash-head">
               <div>
-                <h1>Pembukuan Arus Kas Operasional</h1>
+                <h1>{tabTitles.finance}</h1>
                 <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
                   Catat pemasukan sewa dan pengeluaran operasional (listrik, air,
                   wifi, kebersihan).
                 </p>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button
                   className="btn btn-line btn-sm"
                   onClick={() => window.print()}
@@ -1420,93 +1997,185 @@ export default function OwnerDashboard() {
               </div>
             </div>
 
+            {/* Financial summary KPIs */}
             <div className="dash-grid-kpi">
               <div className="dash-kpi-card">
                 <div className="kpi-label">Total Pemasukan</div>
-                <div className="kpi-num" style={{ color: "var(--wa-dark)" }}>
+                <div
+                  className="kpi-num"
+                  style={{ color: "var(--wa-dark)", fontSize: 20 }}
+                >
                   {fmtRp(totalIncome)}
                 </div>
               </div>
               <div className="dash-kpi-card">
                 <div className="kpi-label">Total Pengeluaran</div>
-                <div className="kpi-num" style={{ color: "var(--rose-dark)" }}>
+                <div
+                  className="kpi-num"
+                  style={{ color: "var(--rose-dark)", fontSize: 20 }}
+                >
                   {fmtRp(totalExpense)}
                 </div>
               </div>
               <div className="dash-kpi-card">
                 <div className="kpi-label">Saldo Bersih</div>
-                <div className="kpi-num" style={{ color: "var(--teal)" }}>
+                <div
+                  className="kpi-num"
+                  style={{ color: "var(--teal)", fontSize: 20 }}
+                >
                   {fmtRp(netBalance)}
                 </div>
               </div>
             </div>
 
-            <div className="dash-table-card">
-              <div className="dt-head">
-                <h3
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 800,
-                    color: "var(--teal-950)",
-                  }}
-                >
-                  Riwayat Arus Kas Bulan November 2026
-                </h3>
+            {/* Desktop Table View */}
+            <div className="dash-desktop-view">
+              <div className="dash-table-card">
+                <div className="dt-head">
+                  <h3
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: "var(--teal-950)",
+                    }}
+                  >
+                    Riwayat Arus Kas Bulan November 2026
+                  </h3>
+                </div>
+                <div className="dash-table-wrap">
+                  <table className="dash-table">
+                    <thead>
+                      <tr>
+                        <th>Tanggal</th>
+                        <th>Jenis</th>
+                        <th>Kategori</th>
+                        <th>Kost / Unit</th>
+                        <th>Keterangan</th>
+                        <th style={{ textAlign: "right" }}>Jumlah (Rp)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transactions.map((t) => (
+                        <tr key={t.id}>
+                          <td>{t.date}</td>
+                          <td>
+                            <span
+                              style={{
+                                padding: "2px 7px",
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                background:
+                                  t.type === "income"
+                                    ? "var(--wa-soft)"
+                                    : "var(--rose-soft)",
+                                color:
+                                  t.type === "income"
+                                    ? "var(--wa-dark)"
+                                    : "var(--rose-dark)",
+                              }}
+                            >
+                              {t.type === "income" ? "Pemasukan" : "Pengeluaran"}
+                            </span>
+                          </td>
+                          <td>{t.category}</td>
+                          <td>{t.kost_name}</td>
+                          <td>{t.notes}</td>
+                          <td
+                            style={{
+                              textAlign: "right",
+                              fontWeight: 700,
+                              color:
+                                t.type === "income"
+                                  ? "var(--wa-dark)"
+                                  : "var(--rose-dark)",
+                            }}
+                          >
+                            {t.type === "income" ? "+" : "-"} {fmtRp(t.amount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <table className="dash-table">
-                <thead>
-                  <tr>
-                    <th>Tanggal</th>
-                    <th>Jenis</th>
-                    <th>Kategori</th>
-                    <th>Kost / Unit</th>
-                    <th>Keterangan</th>
-                    <th style={{ textAlign: "right" }}>Jumlah (Rp)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((t) => (
-                    <tr key={t.id}>
-                      <td>{t.date}</td>
-                      <td>
-                        <span
-                          style={{
-                            padding: "2px 7px",
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            background:
-                              t.type === "income"
-                                ? "var(--wa-soft)"
-                                : "var(--rose-soft)",
-                            color:
-                              t.type === "income"
-                                ? "var(--wa-dark)"
-                                : "var(--rose-dark)",
-                          }}
-                        >
-                          {t.type === "income" ? "Pemasukan" : "Pengeluaran"}
-                        </span>
-                      </td>
-                      <td>{t.category}</td>
-                      <td>{t.kost_name}</td>
-                      <td>{t.notes}</td>
-                      <td
+            </div>
+
+            {/* Mobile Card Feed View */}
+            <div className="dash-mobile-view">
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: "var(--teal-950)",
+                  marginBottom: 10,
+                }}
+              >
+                Riwayat Transaksi (November 2026)
+              </div>
+              {transactions.map((t) => (
+                <div key={t.id} className="dash-tx-mcard">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span
                         style={{
-                          textAlign: "right",
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontSize: 10,
                           fontWeight: 700,
+                          background:
+                            t.type === "income"
+                              ? "var(--wa-soft)"
+                              : "var(--rose-soft)",
                           color:
                             t.type === "income"
                               ? "var(--wa-dark)"
                               : "var(--rose-dark)",
                         }}
                       >
-                        {t.type === "income" ? "+" : "-"} {fmtRp(t.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        {t.category}
+                      </span>
+                      <span style={{ fontSize: 10.5, color: "var(--faint)" }}>
+                        {t.date}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: "var(--ink)",
+                      }}
+                    >
+                      {t.notes || t.kost_name}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--mut)" }}>
+                      {t.kost_name}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      textAlign: "right",
+                      fontWeight: 800,
+                      fontSize: 13.5,
+                      fontVariantNumeric: "tabular-nums",
+                      color:
+                        t.type === "income"
+                          ? "var(--wa-dark)"
+                          : "var(--rose-dark)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {t.type === "income" ? "+" : "-"} {fmtRp(t.amount)}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -1516,7 +2185,7 @@ export default function OwnerDashboard() {
           <div>
             <div className="dash-head">
               <div>
-                <h1>Paket Mitra & Langganan</h1>
+                <h1>{tabTitles.subs}</h1>
                 <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
                   Tingkatkan visibilitas unit kost Anda dengan fitur prioritas
                   dan badge Kost Pilihan.
@@ -1524,13 +2193,7 @@ export default function OwnerDashboard() {
               </div>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                gap: 20,
-              }}
-            >
+            <div className="dash-grid-subs">
               <div
                 className="dash-table-card"
                 style={{
@@ -1646,7 +2309,7 @@ export default function OwnerDashboard() {
           <div>
             <div className="dash-head">
               <div>
-                <h1>Pusat Notifikasi</h1>
+                <h1>{tabTitles.notif}</h1>
                 <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
                   Pemberitahuan terkait status listing, ulasan baru, dan
                   pembayaran.
@@ -1674,6 +2337,8 @@ export default function OwnerDashboard() {
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: 6,
                       }}
                     >
                       <b style={{ fontSize: 13, color: "var(--teal-950)" }}>
@@ -1704,7 +2369,7 @@ export default function OwnerDashboard() {
           <div>
             <div className="dash-head">
               <div>
-                <h1>Profil Akun Mitra</h1>
+                <h1>{tabTitles.profile}</h1>
                 <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
                   Informasi kontak yang akan ditampilkan kepada calon penyewa
                   saat klik tombol WhatsApp.
@@ -1762,14 +2427,7 @@ export default function OwnerDashboard() {
                     />
                   </div>
 
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 16,
-                      marginBottom: 16,
-                    }}
-                  >
+                  <div className="dash-grid-form" style={{ marginBottom: 16 }}>
                     <div>
                       <label
                         style={{
@@ -1830,7 +2488,11 @@ export default function OwnerDashboard() {
                     />
                   </div>
 
-                  <button type="submit" className="btn btn-emerald">
+                  <button
+                    type="submit"
+                    className="btn btn-emerald"
+                    style={{ width: "100%", minHeight: 44 }}
+                  >
                     Simpan Perubahan Profil
                   </button>
                 </form>
@@ -1840,54 +2502,49 @@ export default function OwnerDashboard() {
         )}
       </main>
 
-      {/* MODAL: TAMBAH LISTING */}
+      {/* MODAL 1: TAMBAH LISTING */}
       {showAddListing && (
         <div
-          className="modal-overlay"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
+          className="dash-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddListing(false);
           }}
         >
-          <div
-            className="modal-panel"
-            style={{
-              background: "#fff",
-              borderRadius: 20,
-              maxWidth: 580,
-              width: "100%",
-              padding: 28,
-              boxShadow: "var(--sh-lg)",
-            }}
-          >
+          <div className="dash-modal-panel">
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: 20,
+                marginBottom: 18,
               }}
             >
-              <h3 style={{ fontSize: 18, fontWeight: 800 }}>
+              <h3 style={{ fontSize: 17, fontWeight: 800 }}>
                 Tambah Properti Kost Baru
               </h3>
               <button
                 type="button"
                 onClick={() => setShowAddListing(false)}
-                style={{ fontSize: 18, cursor: "pointer" }}
+                style={{
+                  fontSize: 18,
+                  cursor: "pointer",
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                }}
+                aria-label="Tutup"
               >
                 ✕
               </button>
             </div>
             <form onSubmit={handleAddListing}>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 700 }}>
+                <label
+                  style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                >
                   Nama Kost
                 </label>
                 <input
@@ -1900,16 +2557,11 @@ export default function OwnerDashboard() {
                   required
                 />
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                  marginBottom: 12,
-                }}
-              >
+              <div className="dash-grid-form" style={{ marginBottom: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700 }}>
+                  <label
+                    style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                  >
                     Tipe Kost
                   </label>
                   <select
@@ -1926,7 +2578,9 @@ export default function OwnerDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700 }}>
+                  <label
+                    style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                  >
                     Harga Bulanan (Rp)
                   </label>
                   <input
@@ -1943,16 +2597,11 @@ export default function OwnerDashboard() {
                   />
                 </div>
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                  marginBottom: 12,
-                }}
-              >
+              <div className="dash-grid-form" style={{ marginBottom: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700 }}>
+                  <label
+                    style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                  >
                     Kecamatan
                   </label>
                   <input
@@ -1965,7 +2614,9 @@ export default function OwnerDashboard() {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700 }}>
+                  <label
+                    style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                  >
                     Total Jumlah Kamar
                   </label>
                   <input
@@ -1983,7 +2634,9 @@ export default function OwnerDashboard() {
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, fontWeight: 700 }}>
+                <label
+                  style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                >
                   Alamat Lengkap
                 </label>
                 <input
@@ -2002,16 +2655,22 @@ export default function OwnerDashboard() {
                   gap: 10,
                   justifyContent: "flex-end",
                   marginTop: 20,
+                  flexWrap: "wrap",
                 }}
               >
                 <button
                   type="button"
                   className="btn btn-line"
+                  style={{ minHeight: 42, flex: 1 }}
                   onClick={() => setShowAddListing(false)}
                 >
                   Batal
                 </button>
-                <button type="submit" className="btn btn-emerald">
+                <button
+                  type="submit"
+                  className="btn btn-emerald"
+                  style={{ minHeight: 42, flex: 1 }}
+                >
                   Simpan Draft
                 </button>
               </div>
@@ -2020,37 +2679,49 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {/* MODAL: TAMBAH TRANSAKSI KEUANGAN */}
+      {/* MODAL 2: TAMBAH TRANSAKSI KEUANGAN */}
       {showAddTx && (
         <div
-          className="modal-overlay"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
+          className="dash-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddTx(false);
           }}
         >
-          <div
-            className="modal-panel"
-            style={{
-              background: "#fff",
-              borderRadius: 20,
-              maxWidth: 480,
-              width: "100%",
-              padding: 24,
-            }}
-          >
-            <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>
-              Catat Transaksi Keuangan Baru
-            </h3>
+          <div className="dash-modal-panel">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>
+                Catat Transaksi Keuangan Baru
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddTx(false)}
+                style={{
+                  fontSize: 18,
+                  cursor: "pointer",
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                }}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
             <form onSubmit={handleAddTx}>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 700 }}>
+                <label
+                  style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                >
                   Jenis Transaksi
                 </label>
                 <select
@@ -2065,7 +2736,11 @@ export default function OwnerDashboard() {
                 </select>
               </div>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 700 }}>Kategori</label>
+                <label
+                  style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                >
+                  Kategori
+                </label>
                 <input
                   className="finput"
                   placeholder="cth: Sewa Bulanan, WiFi, Listrik, Sampah"
@@ -2077,7 +2752,9 @@ export default function OwnerDashboard() {
                 />
               </div>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 700 }}>
+                <label
+                  style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                >
                   Nominal (Rp)
                 </label>
                 <input
@@ -2091,7 +2768,9 @@ export default function OwnerDashboard() {
                 />
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, fontWeight: 700 }}>
+                <label
+                  style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+                >
                   Catatan Keterangan
                 </label>
                 <input
@@ -2104,16 +2783,26 @@ export default function OwnerDashboard() {
                 />
               </div>
               <div
-                style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  justifyContent: "flex-end",
+                  flexWrap: "wrap",
+                }}
               >
                 <button
                   type="button"
                   className="btn btn-line"
+                  style={{ minHeight: 42, flex: 1 }}
                   onClick={() => setShowAddTx(false)}
                 >
                   Batal
                 </button>
-                <button type="submit" className="btn btn-emerald">
+                <button
+                  type="submit"
+                  className="btn btn-emerald"
+                  style={{ minHeight: 42, flex: 1 }}
+                >
                   Simpan Transaksi
                 </button>
               </div>
@@ -2122,36 +2811,50 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {/* MODAL: VERIFIKASI ULASAN */}
+      {/* MODAL 3: VERIFIKASI ULASAN */}
       {showVerifyModal && (
         <div
-          className="modal-overlay"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
+          className="dash-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowVerifyModal(null);
           }}
         >
-          <div
-            className="modal-panel"
-            style={{
-              background: "#fff",
-              borderRadius: 20,
-              maxWidth: 480,
-              width: "100%",
-              padding: 24,
-            }}
-          >
-            <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
-              Verifikasi Ulasan Penghuni
-            </h3>
+          <div className="dash-modal-panel">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>
+                Verifikasi Ulasan Penghuni
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowVerifyModal(null)}
+                style={{
+                  fontSize: 18,
+                  cursor: "pointer",
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                }}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
             <p
-              style={{ fontSize: 12.5, color: "var(--mut)", marginBottom: 16 }}
+              style={{
+                fontSize: 12.5,
+                color: "var(--mut)",
+                marginBottom: 14,
+              }}
             >
               Pastikan nama pengulas sesuai dengan data penghuni kamar. Bila nama
               berbeda (misal memakai nama panggilan), masukkan alasan override
@@ -2166,7 +2869,8 @@ export default function OwnerDashboard() {
                 fontSize: 12.5,
               }}
             >
-              <b>{showVerifyModal.reviewer_name}</b> ({showVerifyModal.room_number})
+              <b>{showVerifyModal.reviewer_name}</b> (
+              {showVerifyModal.room_number})
               <p style={{ marginTop: 4, color: "var(--ink2)" }}>
                 "{showVerifyModal.comment}"
               </p>
@@ -2191,11 +2895,17 @@ export default function OwnerDashboard() {
               />
             </div>
             <div
-              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                flexWrap: "wrap",
+              }}
             >
               <button
                 type="button"
                 className="btn btn-line"
+                style={{ minHeight: 42, flex: 1 }}
                 onClick={() => setShowVerifyModal(null)}
               >
                 Batal
@@ -2203,6 +2913,7 @@ export default function OwnerDashboard() {
               <button
                 type="button"
                 className="btn btn-emerald"
+                style={{ minHeight: 42, flex: 1 }}
                 onClick={handleVerifyReview}
               >
                 Verifikasi & Terbitkan
@@ -2212,36 +2923,50 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {/* MODAL: BALAS ULASAN */}
+      {/* MODAL 4: BALAS ULASAN */}
       {showReplyModal && (
         <div
-          className="modal-overlay"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
+          className="dash-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowReplyModal(null);
           }}
         >
-          <div
-            className="modal-panel"
-            style={{
-              background: "#fff",
-              borderRadius: 20,
-              maxWidth: 480,
-              width: "100%",
-              padding: 24,
-            }}
-          >
-            <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
-              Balas Ulasan Penghuni
-            </h3>
+          <div className="dash-modal-panel">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>
+                Balas Ulasan Penghuni
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowReplyModal(null)}
+                style={{
+                  fontSize: 18,
+                  cursor: "pointer",
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                }}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
             <p
-              style={{ fontSize: 12, color: "var(--mut)", marginBottom: 14 }}
+              style={{
+                fontSize: 12,
+                color: "var(--mut)",
+                marginBottom: 14,
+              }}
             >
               Tulis balasan sopan. Dilarang menyertakan nomor telepon pribadi
               atau link eksternal.
@@ -2254,11 +2979,17 @@ export default function OwnerDashboard() {
               onChange={(e) => setReplyText(e.target.value)}
             />
             <div
-              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                flexWrap: "wrap",
+              }}
             >
               <button
                 type="button"
                 className="btn btn-line"
+                style={{ minHeight: 42, flex: 1 }}
                 onClick={() => setShowReplyModal(null)}
               >
                 Batal
@@ -2266,6 +2997,7 @@ export default function OwnerDashboard() {
               <button
                 type="button"
                 className="btn btn-emerald"
+                style={{ minHeight: 42, flex: 1 }}
                 onClick={handleSendReply}
               >
                 Kirim Balasan
@@ -2275,43 +3007,59 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {/* MODAL: PEMBAYARAN LANGGANAN */}
+      {/* MODAL 5: PEMBAYARAN LANGGANAN */}
       {showPayModal && (
         <div
-          className="modal-overlay"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            zIndex: 100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
+          className="dash-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPayModal(false);
           }}
         >
-          <div
-            className="modal-panel"
-            style={{
-              background: "#fff",
-              borderRadius: 20,
-              maxWidth: 480,
-              width: "100%",
-              padding: 24,
-            }}
-          >
-            <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
-              Konfirmasi Pembayaran Langganan
-            </h3>
+          <div className="dash-modal-panel">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 8,
+              }}
+            >
+              <h3 style={{ fontSize: 16, fontWeight: 800 }}>
+                Konfirmasi Pembayaran Langganan
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowPayModal(false)}
+                style={{
+                  fontSize: 18,
+                  cursor: "pointer",
+                  width: 32,
+                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                }}
+                aria-label="Tutup"
+              >
+                ✕
+              </button>
+            </div>
             <p
-              style={{ fontSize: 12, color: "var(--mut)", marginBottom: 14 }}
+              style={{
+                fontSize: 12,
+                color: "var(--mut)",
+                marginBottom: 14,
+              }}
             >
               Transfer sesuai nominal ke rekening resmi Havena Kost:
               <br />
               <b>BCA 018-882-9901 a.n. PT Havena Kost Indonesia</b>
             </p>
             <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, fontWeight: 700 }}>
+              <label
+                style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+              >
                 Paket Pilihan
               </label>
               <input
@@ -2322,7 +3070,9 @@ export default function OwnerDashboard() {
               />
             </div>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 700 }}>
+              <label
+                style={{ fontSize: 12, fontWeight: 700, display: "block" }}
+              >
                 URL Bukti Transfer (opsional)
               </label>
               <input
@@ -2333,11 +3083,17 @@ export default function OwnerDashboard() {
               />
             </div>
             <div
-              style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                flexWrap: "wrap",
+              }}
             >
               <button
                 type="button"
                 className="btn btn-line"
+                style={{ minHeight: 42, flex: 1 }}
                 onClick={() => setShowPayModal(false)}
               >
                 Batal
@@ -2345,6 +3101,7 @@ export default function OwnerDashboard() {
               <button
                 type="button"
                 className="btn btn-emerald"
+                style={{ minHeight: 42, flex: 1 }}
                 onClick={() => {
                   setShowPayModal(false);
                   alert(
