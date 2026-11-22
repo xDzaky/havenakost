@@ -197,7 +197,7 @@ export default function AdminDashboard() {
       comment: "Penipuan! Nomor WA tidak merespons dan uang muka hangus.",
       publicationStatus: "pending",
       isFlagged: true,
-      flagReason: "Laporan tuduhan penipuan tanpa bukti sewa",
+      flagReason: "Tuduhan penipuan tanpa bukti sewa",
       created_at: "2026-11-16",
     },
     {
@@ -693,24 +693,6 @@ export default function AdminDashboard() {
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
           </button>
-          <Link
-            href="/"
-            title="Ke Halaman Publik"
-            style={{ color: "var(--mut)", display: "flex", padding: 4 }}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <polyline points="15 3 21 3 21 9" />
-              <line x1="10" y1="14" x2="21" y2="3" />
-            </svg>
-          </Link>
         </div>
       </aside>
 
@@ -1191,19 +1173,59 @@ export default function AdminDashboard() {
                         {r.isFlagged ? (
                           <span
                             style={{
-                              padding: "2px 7px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              padding: "3px 8px",
                               borderRadius: 6,
                               background: "var(--rose-soft)",
                               color: "var(--rose-dark)",
-                              fontSize: 10.5,
-                              fontWeight: 800,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              lineHeight: 1.35,
                             }}
                           >
-                            Laporan: {r.flagReason}
+                            <span>⚠️</span>
+                            <span>
+                              Dilaporkan:{" "}
+                              {r.flagReason
+                                ? r.flagReason.replace(/^laporan\s*:?\s*/i, "")
+                                : "Pelanggaran konten"}
+                            </span>
+                          </span>
+                        ) : r.publicationStatus === "owner_rejected" ? (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              padding: "3px 8px",
+                              borderRadius: 6,
+                              background: "var(--amber-soft)",
+                              color: "var(--amber-dark)",
+                              fontSize: 11,
+                              fontWeight: 700,
+                            }}
+                          >
+                            <span>✋</span>
+                            <span>Ditolak Pemilik Kost</span>
                           </span>
                         ) : (
-                          <span style={{ fontSize: 11, color: "var(--faint)" }}>
-                            Normal
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              padding: "2.5px 7px",
+                              borderRadius: 6,
+                              background: "#f1f5f9",
+                              color: "#64748b",
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            <span style={{ color: "#10b981", fontSize: 10 }}>✓</span>
+                            <span>Tanpa Laporan (Normal)</span>
                           </span>
                         )}
                       </td>
