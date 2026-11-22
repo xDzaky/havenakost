@@ -259,14 +259,11 @@ export default function OwnerDashboard() {
     }
   };
 
-  // Map initialization when Profile tab is active
+  // Map initialization - runs on mount so map is pre-rendered and ready with zero lag
   useEffect(() => {
-    if (activeTab !== "profile") return;
-
     let isCancelled = false;
 
     const initMap = async () => {
-      await new Promise((r) => setTimeout(r, 80));
       if (isCancelled || !mapContainerRef.current) return;
 
       let maplibregl: any = (window as any).maplibregl;
@@ -281,9 +278,6 @@ export default function OwnerDashboard() {
       if (isCancelled || !mapContainerRef.current) return;
 
       if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.resize();
-        } catch (e) {}
         return;
       }
 
@@ -295,6 +289,8 @@ export default function OwnerDashboard() {
         style: "https://tiles.openfreemap.org/styles/bright",
         center: [initialLng, initialLat],
         zoom: 15,
+        fadeDuration: 0,
+        trackResize: true,
         attributionControl: false,
       });
 
@@ -350,7 +346,16 @@ export default function OwnerDashboard() {
     return () => {
       isCancelled = true;
     };
-  }, [activeTab, applyCoordinates, profile.latitude, profile.longitude]);
+  }, [applyCoordinates, profile.latitude, profile.longitude]);
+
+  // When switching to "profile" tab, immediately resize so canvas is 100% sharp with 0 delay
+  useEffect(() => {
+    if (activeTab === "profile" && mapInstanceRef.current) {
+      requestAnimationFrame(() => {
+        mapInstanceRef.current?.resize();
+      });
+    }
+  }, [activeTab]);
 
   // Clean up map on unmount
   useEffect(() => {
@@ -2462,8 +2467,8 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* 7. PROFIL TAB */}
-        {activeTab === "profile" && (
+        {/* 7. PROFIL TAB (Pre-mounted in DOM with display toggle for instantaneous load with zero freeze) */}
+        <div style={{ display: activeTab === "profile" ? "block" : "none" }}>
           <div>
             <div className="dash-head">
               <div>
@@ -2718,24 +2723,6 @@ export default function OwnerDashboard() {
                         className="map-picker-container"
                         style={{ height: 280 }}
                       />
-                      <div
-                        style={{
-                          position: "absolute",
-                          bottom: 10,
-                          left: 10,
-                          right: 10,
-                          background: "rgba(15, 23, 42, 0.78)",
-                          color: "#fff",
-                          padding: "6px 10px",
-                          borderRadius: 8,
-                          fontSize: 10.5,
-                          textAlign: "center",
-                          backdropFilter: "blur(4px)",
-                          pointerEvents: "none",
-                        }}
-                      >
-                        💡 <b>Petunjuk:</b> Klik di mana saja pada peta atau geser pin merah 🏠 untuk menyesuaikan titik lokasi kost Anda.
-                      </div>
                     </div>
 
                     {/* Current Coordinate and Action Bar */}
@@ -2816,7 +2803,7 @@ export default function OwnerDashboard() {
               </div>
             </div>
           </div>
-        )}
+        </div>
       </main>
 
       {/* MODAL 1: TAMBAH LISTING */}
