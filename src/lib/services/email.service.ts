@@ -46,6 +46,10 @@ export async function sendEmail(options: {
   if (!response.ok) {
     const errorText = await response.text();
     console.error("[email error] Resend API error:", errorText);
+    if (process.env.NODE_ENV !== "production") {
+      // Pada mode dev/testing, jangan gagalkan autentikasi bila domain Resend free tier membatasi penerima
+      return;
+    }
     throw new Error("Gagal mengirim email melalui Resend");
   }
 }

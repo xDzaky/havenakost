@@ -20,10 +20,10 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 12,
+    minPasswordLength: 8,
     maxPasswordLength: 128,
     autoSignIn: true,
-    requireEmailVerification: true,
+    requireEmailVerification: false,
     async sendResetPassword(data: { user: { email: string; name: string }; url: string; token: string }) {
       await sendEmail({
         to: data.user.email,

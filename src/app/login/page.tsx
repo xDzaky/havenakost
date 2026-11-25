@@ -82,41 +82,12 @@ export default function LoginPage() {
       return;
     }
 
-    // 1. Coba verifikasi dengan akun terdaftar (offline-first & database fallback)
+    // 1. Coba verifikasi dengan akun terdaftar
     const matchedAccount = REGISTERED_ACCOUNTS.find(
       (acc) => acc.email === inputEmail && acc.role === role
     );
 
-    if (matchedAccount) {
-      if (matchedAccount.password !== inputPass) {
-        setErrorMessage("Kata sandi salah untuk email ini. Periksa kembali huruf besar/kecil.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Berhasil autentikasi
-      const sessionData = {
-        role: matchedAccount.role,
-        name: matchedAccount.name,
-        email: matchedAccount.displayEmail,
-      };
-
-      try {
-        localStorage.setItem("havena_session", JSON.stringify(sessionData));
-      } catch (err) {}
-
-      setSuccessMessage(`Berhasil masuk sebagai ${matchedAccount.name}! Mengalihkan ke dashboard...`);
-      setTimeout(() => {
-        if (matchedAccount.role === "admin") {
-          router.push("/admin");
-        } else {
-          router.push("/owner");
-        }
-      }, 700);
-      return;
-    }
-
-    // 2. Coba lewat better-auth client jika terhubung ke server DB online
+    // 2. Otentikasi resmi via Better-Auth agar session cookie HTTP-only terpasang di browser
     try {
       const res = await authClient.signIn.email({
         email: inputEmail,
@@ -124,34 +95,66 @@ export default function LoginPage() {
       });
 
       if (res.error) {
-        setErrorMessage(
-          res.error.message ||
-            "Akun tidak ditemukan. Gunakan kredensial resmi pada petunjuk di bawah atau file AKUN-LOGIN.md"
-        );
+        if (matchedAccount && matchedAccount.password !== inputPass) {
+          setErrorMessage("Kata sandi salah untuk email ini. Periksa kembali huruf besar/kecil.");
+        } else {
+          setErrorMessage(
+            res.error.message ||
+              "Akun tidak ditemukan atau kata sandi tidak cocok. Gunakan kredensial resmi pada petunjuk di bawah."
+          );
+        }
         setIsLoading(false);
         return;
       }
 
+      // Berhasil autentikasi
       const sessionData = {
         role: role,
-        name: inputEmail.split("@")[0],
-        email: inputEmail,
+        name: matchedAccount ? matchedAccount.name : inputEmail.split("@")[0],
+        email: matchedAccount ? matchedAccount.displayEmail : inputEmail,
       };
+
       try {
         localStorage.setItem("havena_session", JSON.stringify(sessionData));
       } catch (err) {}
 
-      setSuccessMessage("Autentikasi berhasil! Mengalihkan ke dashboard...");
+      setSuccessMessage(
+        `Berhasil masuk sebagai ${sessionData.name}! Mengalihkan ke dashboard...`
+      );
       setTimeout(() => {
         if (role === "admin") {
           router.push("/admin");
         } else {
           router.push("/owner");
         }
-      }, 700);
+      }, 500);
     } catch (err: any) {
+      // Fallback darurat jika jaringan DB offline tetapi kredensial demo cocok
+      if (matchedAccount && matchedAccount.password === inputPass) {
+        const sessionData = {
+          role: matchedAccount.role,
+          name: matchedAccount.name,
+          email: matchedAccount.displayEmail,
+        };
+        try {
+          localStorage.setItem("havena_session", JSON.stringify(sessionData));
+        } catch (e) {}
+
+        setSuccessMessage(
+          `Berhasil masuk sebagai ${matchedAccount.name}! Mengalihkan ke dashboard...`
+        );
+        setTimeout(() => {
+          if (matchedAccount.role === "admin") {
+            router.push("/admin");
+          } else {
+            router.push("/owner");
+          }
+        }, 500);
+        return;
+      }
+
       setErrorMessage(
-        "Akun tidak cocok dengan role yang dipilih. Pastikan memilih role dan kredensial yang tepat (lihat AKUN-LOGIN.md)."
+        "Koneksi server gagal atau kredensial tidak cocok. Pastikan memilih role dan kredensial yang tepat."
       );
       setIsLoading(false);
     }
