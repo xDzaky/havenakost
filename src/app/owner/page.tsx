@@ -47,7 +47,7 @@ interface Notification {
   id: string;
   title: string;
   message: string;
-  type: "listing" | "review" | "subscription" | "system";
+  type: "listing" | "review" | "subscription" | "system" | "payment" | "reminder" | string;
   is_read: boolean;
   created_at: string;
 }
@@ -65,6 +65,10 @@ export default function OwnerDashboard() {
     "dash" | "listings" | "reviews" | "finance" | "subs" | "notif" | "profile"
   >("dash");
   const [occupancyPeriod, setOccupancyPeriod] = useState<"30d" | "6m" | "1y">("30d");
+  const [chartMetric, setChartMetric] = useState<"occupancy" | "income">("occupancy");
+  const [showAllDueDates, setShowAllDueDates] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<"all" | "pending" | "published">("all");
+  const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
 
   // Tab switch handler with auto-close drawer and smooth scroll to top
   const handleTabChange = useCallback((tab: typeof activeTab) => {
@@ -547,6 +551,32 @@ export default function OwnerDashboard() {
 
   const fmtRp = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
 
+  // Format ringkas agar nominal puluhan/ratusan juta tidak memecah desain card
+  const fmtRpCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000_000) {
+      const val = (abs / 1_000_000_000).toFixed(1).replace(/\.0$/, "").replace(".", ",");
+      return `${sign}Rp ${val} M`;
+    }
+    if (abs >= 1_000_000) {
+      const val = (abs / 1_000_000).toFixed(2).replace(/0$/, "").replace(/\.0$/, "").replace(".", ",");
+      return `${sign}Rp ${val} jt`;
+    }
+    return `${sign}Rp ${Math.round(abs).toLocaleString("id-ID")}`;
+  };
+
+  const fmtDateId = (dateStr: string) => {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   // Real Database API Handlers
   const handleAddListing = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -713,8 +743,24 @@ export default function OwnerDashboard() {
     }
   };
 
-  const markAllRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, is_read: true })));
+  const markAllRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    try {
+      await fetch("/api/owner/notifications/read-all", { method: "POST" });
+    } catch {
+      // ignore network error, UI already updated optimistically
+    }
+  };
+
+  const markOneRead = async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+    );
+    try {
+      await fetch(`/api/owner/notifications/${id}/read`, { method: "POST" });
+    } catch {
+      // ignore
+    }
   };
 
   if (isLoadingAuth) {
@@ -1468,18 +1514,29 @@ export default function OwnerDashboard() {
                           />
                         </svg>
                       </div>
-                      <div>
+                      <div style={{ minWidth: 0 }}>
                         <div className="dash-vibrant-label" style={{ color: "#bae6fd" }}>
                           SALDO BULAN INI
                         </div>
-                        <div className="dash-vibrant-num" style={{ fontSize: 21 }}>
-                          {fmtRp(netBalance)}
+                        <div
+                          className="dash-vibrant-num"
+                          title={fmtRp(netBalance)}
+                          style={{
+                            fontSize: "clamp(18px, 1.8vw, 22px)",
+                            whiteSpace: "nowrap",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
+                          {fmtRpCompact(netBalance)}
                         </div>
                       </div>
                     </div>
                     <div className="dash-vibrant-footer" style={{ color: "#e0f2fe" }}>
-                      <span>
-                        pemasukan: <strong style={{ color: "#ffffff" }}>{fmtRp(totalIncome)}</strong>
+                      <span title={fmtRp(totalIncome)} style={{ whiteSpace: "nowrap" }}>
+                        pemasukan:{" "}
+                        <strong style={{ color: "#ffffff", fontVariantNumeric: "tabular-nums" }}>
+                          {fmtRpCompact(totalIncome)}
+                        </strong>
                       </span>
                     </div>
                   </div>
@@ -1490,7 +1547,7 @@ export default function OwnerDashboard() {
               <div className="dash-middle-grid">
                 {/* LEFT COLUMN (8 COLS) */}
                 <div>
-                  {/* WIDGET 1: Grafik Keterisian Kamar Kost */}
+                  {/* WIDGET 1: Ringkasan Performa Hunian & Pemasukan */}
                   <div className="dash-panel-card">
                     <div className="dash-panel-header">
                       <div>
@@ -1498,18 +1555,20 @@ export default function OwnerDashboard() {
                           <span className="dash-indicator-bar dash-indicator-teal" />
                           <h2
                             style={{
-                              fontSize: 17,
+                              fontSize: 16.5,
                               fontWeight: 800,
-                              color: "#1e293b",
+                              color: "#0f172a",
                               letterSpacing: "-0.3px",
                               margin: 0,
                             }}
                           >
-                            Grafik Keterisian Kamar Kost
+                            Performa Hunian & Pemasukan
                           </h2>
                         </div>
                         <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 15px" }}>
-                          Pantau persentase kamar terisi serta riwayat keterisian hunian kost Anda
+                          {chartMetric === "occupancy"
+                            ? "Persentase kamar terisi dari total kamar aktif Anda"
+                            : "Tren pemasukan sewa bulanan yang tercatat di kas"}
                         </p>
                       </div>
 
@@ -1539,68 +1598,117 @@ export default function OwnerDashboard() {
                       </div>
                     </div>
 
-                    {/* Metric Summary Strip (3 cards) */}
+                    {/* Metric Summary Strip (3 cards - compact, anti-wrap) */}
                     <div className="dash-metric-strip">
-                      {/* Metric 1: Okupansi Saat Ini */}
+                      {/* Metric 1: Kamar Terisi */}
                       <div className="dash-metric-item">
-                        <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Kamar Terisi Saat Ini</span>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
-                          <span style={{ fontSize: 24, fontWeight: 800, color: "#0f172a" }}>{kpi.occupancyRate}%</span>
-                          <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-                            ({kpi.occupiedRooms}/{kpi.totalRooms} kamar)
-                          </span>
-                        </div>
-                        <div style={{ marginTop: 8 }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: "#64748b" }}>
+                          Kamar Terisi
+                        </span>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "baseline",
+                            gap: 6,
+                            marginTop: 6,
+                            flexWrap: "nowrap",
+                          }}
+                        >
                           <span
                             style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "2px 8px",
-                              borderRadius: 6,
-                              fontSize: 11,
-                              fontWeight: 700,
-                              background: "#ecfdf5",
-                              color: "#047857",
-                              border: "1px solid #a7f3d0",
+                              fontSize: "clamp(20px, 2vw, 24px)",
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              fontVariantNumeric: "tabular-nums",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            {kpi.occupancyRate > 0 ? "Hunian Terhitung" : "Belum Terisi"}
+                            {kpi.occupancyRate}%
                           </span>
+                          <span
+                            style={{
+                              fontSize: 11.5,
+                              color: "#64748b",
+                              fontWeight: 600,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            ({kpi.occupiedRooms}/{kpi.totalRooms})
+                          </span>
+                        </div>
+                        <div style={{ marginTop: 6, fontSize: 11, fontWeight: 600, color: "#059669" }}>
+                          {kpi.availableRooms > 0
+                            ? `${kpi.availableRooms} kamar masih kosong`
+                            : "Semua kamar terisi penuh"}
                         </div>
                       </div>
 
-                      {/* Metric 2: Sewa Tertagih */}
-                      <div className="dash-metric-item">
-                        <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Penerimaan Sewa</span>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
-                          <span style={{ fontSize: 24, fontWeight: 800, color: "#0f766e" }}>
-                            {fmtRp(totalIncome)}
+                      {/* Metric 2: Penerimaan Sewa */}
+                      <div className="dash-metric-item" title={fmtRp(totalIncome)}>
+                        <span style={{ fontSize: 11.5, fontWeight: 600, color: "#64748b" }}>
+                          Penerimaan Sewa
+                        </span>
+                        <div style={{ marginTop: 6 }}>
+                          <span
+                            style={{
+                              fontSize: "clamp(19px, 1.9vw, 23px)",
+                              fontWeight: 800,
+                              color: "#0f766e",
+                              fontVariantNumeric: "tabular-nums",
+                              whiteSpace: "nowrap",
+                              display: "block",
+                            }}
+                          >
+                            {fmtRpCompact(totalIncome)}
                           </span>
                         </div>
-                        <div style={{ marginTop: 8, fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
-                          Total penerimaan kas bulan ini
+                        <div
+                          style={{
+                            marginTop: 6,
+                            fontSize: 11,
+                            color: "#64748b",
+                            fontWeight: 500,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {fmtRp(totalIncome)} · bulan ini
                         </div>
                       </div>
 
                       {/* Metric 3: Tunggakan Sewa */}
-                      <div className="dash-metric-item" style={{ background: "#f8fafc", borderColor: "#f1f5f9" }}>
+                      <div className="dash-metric-item">
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Tunggakan Sewa</span>
-                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981" }} />
+                          <span style={{ fontSize: 11.5, fontWeight: 600, color: "#64748b" }}>
+                            Tunggakan Sewa
+                          </span>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#10b981" }} />
                         </div>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
-                          <span style={{ fontSize: 24, fontWeight: 800, color: "#0f766e" }}>Rp 0</span>
+                        <div style={{ marginTop: 6 }}>
+                          <span
+                            style={{
+                              fontSize: "clamp(19px, 1.9vw, 23px)",
+                              fontWeight: 800,
+                              color: "#0f172a",
+                              fontVariantNumeric: "tabular-nums",
+                              whiteSpace: "nowrap",
+                              display: "block",
+                            }}
+                          >
+                            Rp 0
+                          </span>
                         </div>
-                        <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 600, color: "#059669" }}>
-                          Semua tagihan sewa tertib & lunas
+                        <div style={{ marginTop: 6, fontSize: 11, fontWeight: 600, color: "#059669" }}>
+                          Semua tagihan lunas & tertib
                         </div>
                       </div>
                     </div>
 
-                    {/* Chart Header Tag */}
+                    {/* Chart Mode Switcher (Occupancy vs Income) */}
                     <div
                       style={{
-                        paddingTop: 8,
+                        paddingTop: 4,
                         paddingBottom: 12,
                         display: "flex",
                         alignItems: "center",
@@ -1609,21 +1717,47 @@ export default function OwnerDashboard() {
                         gap: 8,
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#0d9488" }} />
-                        <span
+                      <div style={{ display: "inline-flex", gap: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => setChartMetric("occupancy")}
                           style={{
+                            padding: "5px 12px",
+                            borderRadius: 999,
                             fontSize: 11.5,
-                            fontWeight: 800,
-                            color: "#334155",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.5px",
+                            fontWeight: 700,
+                            border: chartMetric === "occupancy" ? "1px solid #0d9488" : "1px solid #e2e8f0",
+                            background: chartMetric === "occupancy" ? "#f0fdfa" : "#ffffff",
+                            color: chartMetric === "occupancy" ? "#0f766e" : "#64748b",
+                            cursor: "pointer",
                           }}
                         >
-                          1. Persentase Kamar Terisi (%)
-                        </span>
+                          Keterisian Kamar (%)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setChartMetric("income")}
+                          style={{
+                            padding: "5px 12px",
+                            borderRadius: 999,
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            border: chartMetric === "income" ? "1px solid #0284c7" : "1px solid #e2e8f0",
+                            background: chartMetric === "income" ? "#f0f9ff" : "#ffffff",
+                            color: chartMetric === "income" ? "#0369a1" : "#64748b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Pemasukan Sewa (Rp)
+                        </button>
                       </div>
-                      <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Persentase kamar yang aktif dihuni</span>
+                      <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>
+                        {occupancyPeriod === "30d"
+                          ? "30 hari terakhir"
+                          : occupancyPeriod === "6m"
+                            ? "6 bulan terakhir"
+                            : "12 bulan terakhir"}
+                      </span>
                     </div>
 
                     {/* Pure SVG Area Curve Chart (Responsive, Zero Lag) */}
@@ -1641,74 +1775,112 @@ export default function OwnerDashboard() {
                           paddingBottom: 22,
                           textAlign: "right",
                           userSelect: "none",
-                          height: 160,
+                          height: 156,
                           flexShrink: 0,
+                          fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        <span>100%</span>
-                        <span>80%</span>
-                        <span>60%</span>
-                        <span>40%</span>
-                        <span>20%</span>
-                        <span>0%</span>
+                        {chartMetric === "occupancy" ? (
+                          <>
+                            <span>100%</span>
+                            <span>75%</span>
+                            <span>50%</span>
+                            <span>25%</span>
+                            <span>0%</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>{fmtRpCompact(Math.max(totalIncome * 1.2, 3000000)).replace("Rp ", "")}</span>
+                            <span>{fmtRpCompact(Math.max(totalIncome * 0.9, 2250000)).replace("Rp ", "")}</span>
+                            <span>{fmtRpCompact(Math.max(totalIncome * 0.6, 1500000)).replace("Rp ", "")}</span>
+                            <span>{fmtRpCompact(Math.max(totalIncome * 0.3, 750000)).replace("Rp ", "")}</span>
+                            <span>0</span>
+                          </>
+                        )}
                       </div>
 
                       {/* SVG Canvas */}
                       <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-                        <div style={{ position: "relative", width: "100%", height: 160 }}>
-                          <svg
-                            style={{ width: "100%", height: "100%", display: "block", overflow: "visible" }}
-                            preserveAspectRatio="none"
-                            viewBox="0 0 650 160"
-                          >
-                            <defs>
-                              <linearGradient id="lineChartGrad" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stopColor="#0d9488" stopOpacity="0.28" />
-                                <stop offset="100%" stopColor="#0d9488" stopOpacity="0.01" />
-                              </linearGradient>
-                            </defs>
-                            {/* Grid lines */}
-                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="10" y2="10" />
-                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="42" y2="42" />
-                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="74" y2="74" />
-                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="106" y2="106" />
-                            <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="138" y2="138" />
-                            <line stroke="#e2e8f0" strokeWidth="1.5" x1="0" x2="650" y1="160" y2="160" />
+                        <div style={{ position: "relative", width: "100%", height: 156 }}>
+                          {(() => {
+                            const strokeCol = chartMetric === "occupancy" ? "#0d9488" : "#0284c7";
+                            const gradId = chartMetric === "occupancy" ? "occChartGrad" : "incChartGrad";
+                            const pathD =
+                              chartMetric === "occupancy"
+                                ? "M25,112 C90,104 110,90 125,86 C175,78 205,74 225,68 C275,62 305,54 325,50 C375,46 405,40 425,38 C475,34 505,32 525,30 C575,28 605,27 625,27"
+                                : "M25,118 C90,112 110,96 125,92 C175,86 205,98 225,84 C275,70 305,66 325,58 C375,52 405,48 425,44 C475,38 505,40 525,34 C575,30 605,28 625,26";
+                            const areaD = `${pathD} L625,156 L25,156 Z`;
+                            const points =
+                              chartMetric === "occupancy"
+                                ? [
+                                    [25, 112],
+                                    [125, 86],
+                                    [225, 68],
+                                    [325, 50],
+                                    [425, 38],
+                                    [525, 30],
+                                    [625, 27],
+                                  ]
+                                : [
+                                    [25, 118],
+                                    [125, 92],
+                                    [225, 84],
+                                    [325, 58],
+                                    [425, 44],
+                                    [525, 34],
+                                    [625, 26],
+                                  ];
+                            return (
+                              <svg
+                                style={{ width: "100%", height: "100%", display: "block", overflow: "visible" }}
+                                preserveAspectRatio="none"
+                                viewBox="0 0 650 156"
+                              >
+                                <defs>
+                                  <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+                                    <stop offset="0%" stopColor={strokeCol} stopOpacity="0.22" />
+                                    <stop offset="100%" stopColor={strokeCol} stopOpacity="0.01" />
+                                  </linearGradient>
+                                </defs>
+                                <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="12" y2="12" />
+                                <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="48" y2="48" />
+                                <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="84" y2="84" />
+                                <line stroke="#f1f5f9" strokeDasharray="4,4" strokeWidth="1" x1="0" x2="650" y1="120" y2="120" />
+                                <line stroke="#e2e8f0" strokeWidth="1.5" x1="0" x2="650" y1="156" y2="156" />
 
-                            {/* Area Fill */}
-                            <path
-                              d="M25,120 C70,110 100,95 125,90 C170,85 200,80 225,75 C270,70 300,60 325,55 C370,50 400,45 425,40 C470,36 500,34 525,32 C570,30 600,28 625,28 L625,160 L25,160 Z"
-                              fill="url(#lineChartGrad)"
-                            />
+                                <path d={areaD} fill={`url(#${gradId})`} />
+                                <path
+                                  d={pathD}
+                                  fill="none"
+                                  stroke={strokeCol}
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2.8"
+                                />
 
-                            {/* Smooth Curve Line */}
-                            <path
-                              d="M25,120 C70,110 100,95 125,90 C170,85 200,80 225,75 C270,70 300,60 325,55 C370,50 400,45 425,40 C470,36 500,34 525,32 C570,30 600,28 625,28"
-                              fill="none"
-                              stroke="#0d9488"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="3"
-                            />
+                                {points.map(([cx, cy], idx) => (
+                                  <circle
+                                    key={idx}
+                                    cx={cx}
+                                    cy={cy}
+                                    fill="#ffffff"
+                                    r={idx === points.length - 1 ? "4.8" : "3.8"}
+                                    stroke={strokeCol}
+                                    strokeWidth={idx === points.length - 1 ? "2.8" : "2.2"}
+                                  />
+                                ))}
 
-                            {/* Data Points */}
-                            <circle cx="25" cy="120" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="125" cy="90" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="225" cy="75" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="325" cy="55" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="425" cy="40" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="525" cy="32" fill="#ffffff" r="4" stroke="#0d9488" strokeWidth="2.5" />
-                            <circle cx="625" cy="28" fill="#ffffff" r="5" stroke="#0d9488" strokeWidth="3" />
-
-                            {/* Active Tooltip Callout */}
-                            <g transform="translate(425, 2)">
-                              <rect fill="#1e1b4b" height="24" rx="6" width="195" x="0" y="0" />
-                              <polygon fill="#1e1b4b" points="180,24 188,28 184,24" />
-                              <text fill="#ffffff" fontSize="10" fontWeight="600" x="10" y="16">
-                                Hari Ini: {kpi.occupancyRate}% • {kpi.occupiedRooms}/{kpi.totalRooms} terisi
-                              </text>
-                            </g>
-                          </svg>
+                                <g transform="translate(430, 0)">
+                                  <rect fill="#0f172a" height="24" rx="6" width="195" x="0" y="0" />
+                                  <text fill="#ffffff" fontSize="10" fontWeight="600" x="10" y="15.5">
+                                    {chartMetric === "occupancy"
+                                      ? `Hari Ini: ${kpi.occupancyRate}% • ${kpi.occupiedRooms}/${kpi.totalRooms} kamar`
+                                      : `Bulan Ini: ${fmtRpCompact(totalIncome)} masuk`}
+                                  </text>
+                                </g>
+                              </svg>
+                            );
+                          })()}
                         </div>
 
                         {/* X-axis Labels */}
@@ -1723,13 +1895,35 @@ export default function OwnerDashboard() {
                             padding: "0 6px",
                           }}
                         >
-                          <span>1 Nov</span>
-                          <span>5 Nov</span>
-                          <span>10 Nov</span>
-                          <span>15 Nov</span>
-                          <span>20 Nov</span>
-                          <span>25 Nov</span>
-                          <span style={{ fontWeight: 800, color: "#0f766e" }}>Hari Ini</span>
+                          {occupancyPeriod === "30d" ? (
+                            <>
+                              <span>1 Nov</span>
+                              <span>5 Nov</span>
+                              <span>10 Nov</span>
+                              <span>15 Nov</span>
+                              <span>20 Nov</span>
+                              <span>25 Nov</span>
+                              <span style={{ fontWeight: 800, color: "#0f766e" }}>Hari Ini</span>
+                            </>
+                          ) : occupancyPeriod === "6m" ? (
+                            <>
+                              <span>Jun</span>
+                              <span>Jul</span>
+                              <span>Agu</span>
+                              <span>Sep</span>
+                              <span>Okt</span>
+                              <span style={{ fontWeight: 800, color: "#0f766e" }}>Nov</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Jan</span>
+                              <span>Mar</span>
+                              <span>Mei</span>
+                              <span>Jul</span>
+                              <span>Sep</span>
+                              <span style={{ fontWeight: 800, color: "#0f766e" }}>Nov</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1941,86 +2135,135 @@ export default function OwnerDashboard() {
 
                 {/* RIGHT COLUMN (4 COLS) */}
                 <div>
-                  {/* WIDGET 3: Pemasukan Sewa Bar Chart Real */}
+                  {/* WIDGET 3: Ringkasan Arus Kas (Sederhana & Real DB) */}
                   <div className="dash-panel-card">
                     <div className="dash-panel-header">
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span className="dash-indicator-bar dash-indicator-teal" />
-                        <h3 style={{ fontSize: 15, fontWeight: 800, color: "#1e293b", margin: 0 }}>
-                          Pemasukan Sewa
+                        <h3 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                          Ringkasan Arus Kas
                         </h3>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange("finance")}
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          color: "#0f766e",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Detail →
+                      </button>
                     </div>
                     <div style={{ marginTop: 14 }}>
-                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
-                        <div>
-                          <div style={{ fontSize: 11.5, color: "#94a3b8", fontWeight: 600 }}>Total Bulan Ini</div>
-                          <div
-                            style={{
-                              fontSize: 22,
-                              fontWeight: 800,
-                              color: "#0f172a",
-                              letterSpacing: "-0.4px",
-                              fontFamily: "var(--font-mono)",
-                              marginTop: 2,
-                            }}
-                          >
-                            {fmtRp(totalIncome)}
-                          </div>
-                        </div>
+                      <div style={{ fontSize: 11.5, color: "#64748b", fontWeight: 600 }}>
+                        Saldo Bersih Bulan Ini
+                      </div>
+                      <div
+                        title={fmtRp(netBalance)}
+                        style={{
+                          fontSize: "clamp(20px, 2vw, 24px)",
+                          fontWeight: 800,
+                          color: "#0f172a",
+                          letterSpacing: "-0.4px",
+                          fontVariantNumeric: "tabular-nums",
+                          whiteSpace: "nowrap",
+                          marginTop: 4,
+                        }}
+                      >
+                        {fmtRpCompact(netBalance)}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+                        {fmtRp(netBalance)}
                       </div>
 
-                      {/* Bar Chart SVG Real */}
-                      <div style={{ width: "100%", paddingTop: 4 }}>
-                        <svg
-                          style={{ width: "100%", height: 160, display: "block", overflow: "visible" }}
-                          preserveAspectRatio="none"
-                          viewBox="0 0 350 160"
+                      {/* Visual Ratio Bar (Pemasukan vs Pengeluaran) */}
+                      {(() => {
+                        const totalFlow = Math.max(1, totalIncome + totalExpense);
+                        const incomePct = Math.round((totalIncome / totalFlow) * 100);
+                        return (
+                          <div style={{ marginTop: 14 }}>
+                            <div
+                              style={{
+                                height: 8,
+                                width: "100%",
+                                borderRadius: 999,
+                                background: "#fee2e2",
+                                overflow: "hidden",
+                                display: "flex",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: `${incomePct}%`,
+                                  height: "100%",
+                                  background: "#0d9488",
+                                  borderRadius: 999,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      <div
+                        style={{
+                          marginTop: 14,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "8px 10px",
+                            borderRadius: 10,
+                            background: "#f0fdfa",
+                            fontSize: 12,
+                          }}
                         >
-                          <line stroke="#f1f5f9" strokeDasharray="3,3" strokeWidth="1" x1="28" x2="345" y1="25" y2="25" />
-                          <line stroke="#f1f5f9" strokeDasharray="3,3" strokeWidth="1" x1="28" x2="345" y1="75" y2="75" />
-                          <line stroke="#e2e8f0" strokeWidth="1" x1="28" x2="345" y1="125" y2="125" />
-
-                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="28">
-                            {totalIncome > 0 ? (totalIncome >= 1000000 ? `${(totalIncome / 1000000).toFixed(0)}jt` : "Max") : "Max"}
-                          </text>
-                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="78">
-                            {totalIncome > 0 ? (totalIncome >= 2000000 ? `${(totalIncome / 2000000).toFixed(0)}jt` : "Mid") : "Mid"}
-                          </text>
-                          <text fill="#94a3b8" fontSize="9" fontWeight="500" textAnchor="end" x="22" y="128">0</text>
-
-                          {/* Bars (Derived from real transaction data or active period bars) */}
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="52" y="48">
-                            {totalIncome > 0 ? "Sewa" : "0"}
-                          </text>
-                          <rect fill="#14b8a6" height={totalIncome > 0 ? 60 : 4} opacity="0.85" rx="3" width="20" x="42" y={totalIncome > 0 ? 65 : 121} />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="52" y="143">W1</text>
-
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="120" y="48">
-                            {totalIncome > 0 ? "Sewa" : "0"}
-                          </text>
-                          <rect fill="#0d9488" height={totalIncome > 0 ? 75 : 4} opacity="0.9" rx="3" width="20" x="110" y={totalIncome > 0 ? 50 : 121} />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="120" y="143">W2</text>
-
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="190" y="48">
-                            {totalIncome > 0 ? "Sewa" : "0"}
-                          </text>
-                          <rect fill="#14b8a6" height={totalIncome > 0 ? 55 : 4} opacity="0.85" rx="3" width="20" x="180" y={totalIncome > 0 ? 70 : 121} />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="190" y="143">W3</text>
-
-                          <text fill="#64748b" fontSize="9.5" fontWeight="600" textAnchor="middle" x="260" y="48">
-                            {totalIncome > 0 ? "Sewa" : "0"}
-                          </text>
-                          <rect fill="#14b8a6" height={totalIncome > 0 ? 65 : 4} opacity="0.85" rx="3" width="20" x="250" y={totalIncome > 0 ? 60 : 121} />
-                          <text fill="#94a3b8" fontSize="9.5" fontWeight="500" textAnchor="middle" x="260" y="143">W4</text>
-
-                          {/* Bar Hari Ini */}
-                          <text fill="#0f766e" fontSize="9.5" fontWeight="700" textAnchor="middle" x="325" y="33">
-                            {totalIncome > 0 ? "Kas" : "0"}
-                          </text>
-                          <rect fill="#0f766e" height={totalIncome > 0 ? 85 : 6} rx="3" width="20" x="315" y={totalIncome > 0 ? 40 : 119} />
-                          <text fill="#0f766e" fontSize="9.5" fontWeight="700" textAnchor="middle" x="325" y="143">Hari Ini</text>
-                        </svg>
+                          <span style={{ color: "#0f766e", fontWeight: 600 }}>Pemasukan</span>
+                          <strong
+                            title={fmtRp(totalIncome)}
+                            style={{
+                              color: "#0f766e",
+                              fontVariantNumeric: "tabular-nums",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            + {fmtRpCompact(totalIncome)}
+                          </strong>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "8px 10px",
+                            borderRadius: 10,
+                            background: "#fff1f2",
+                            fontSize: 12,
+                          }}
+                        >
+                          <span style={{ color: "#be123c", fontWeight: 600 }}>Pengeluaran</span>
+                          <strong
+                            title={fmtRp(totalExpense)}
+                            style={{
+                              color: "#be123c",
+                              fontVariantNumeric: "tabular-nums",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            - {fmtRpCompact(totalExpense)}
+                          </strong>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2163,88 +2406,144 @@ export default function OwnerDashboard() {
                     </div>
                   </div>
 
-                  {/* WIDGET 5: Jatuh Tempo Sewa Real Database */}
-                  <div className="dash-panel-card">
-                    <div className="dash-panel-header">
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span className="dash-indicator-bar dash-indicator-sky" />
-                        <h3 style={{ fontSize: 15, fontWeight: 800, color: "#1e293b", margin: 0 }}>
-                          Jatuh Tempo Sewa
-                        </h3>
-                      </div>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "#4f46e5",
-                          background: "#eef2ff",
-                          padding: "3px 8px",
-                          borderRadius: 6,
-                        }}
-                      >
-                        Bulan Berjalan
-                      </span>
-                    </div>
-
-                    <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-                      {dueDates.length > 0 ? (
-                        dueDates.map((d) => (
-                          <div
-                            key={d.id}
+                  {/* WIDGET 5: Jatuh Tempo Sewa (Hanya 3 Terdekat, Tidak Memenuhi Layar) */}
+                  {(() => {
+                    const urgentCount = dueDates.filter((d) => d.daysUntilDue <= 7).length;
+                    const visibleDueDates = showAllDueDates ? dueDates.slice(0, 8) : dueDates.slice(0, 3);
+                    const hiddenCount = Math.max(0, dueDates.length - 3);
+                    return (
+                      <div className="dash-panel-card">
+                        <div className="dash-panel-header">
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span className="dash-indicator-bar dash-indicator-sky" />
+                            <h3 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                              Jatuh Tempo Terdekat
+                            </h3>
+                          </div>
+                          <span
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "10px 12px",
-                              borderRadius: 10,
-                              background: "#f8fafc",
-                              border: "1px solid #f1f5f9",
-                              fontSize: 12,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: urgentCount > 0 ? "#b45309" : "#0f766e",
+                              background: urgentCount > 0 ? "#fef3c7" : "#f0fdfa",
+                              padding: "3px 8px",
+                              borderRadius: 6,
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <span
-                                style={{
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: "50%",
-                                  background:
-                                    d.daysUntilDue <= 1
-                                      ? "#ef4444"
-                                      : d.daysUntilDue <= 3
-                                      ? "#f59e0b"
-                                      : "#0d9488",
-                                }}
-                              />
-                              <div>
-                                <div style={{ fontWeight: 800, color: "#1e293b" }}>
-                                  Kamar {d.roomCode} - {d.tenantName}
-                                </div>
-                                <div style={{ fontSize: 10.5, color: "#94a3b8" }}>{d.dueText}</div>
-                              </div>
-                            </div>
-                            <span style={{ fontWeight: 800, color: "#334155", fontFamily: "var(--font-mono)" }}>
-                              {fmtRp(d.monthlyPrice)}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <div
-                          style={{
-                            padding: "20px 12px",
-                            textAlign: "center",
-                            background: "#f8fafc",
-                            borderRadius: 10,
-                            color: "#94a3b8",
-                            fontSize: 12,
-                          }}
-                        >
-                          <span style={{ fontSize: 18, display: "block", marginBottom: 4 }}>📅</span>
-                          Tidak ada jadwal jatuh tempo sewa dalam waktu dekat.
+                            {urgentCount > 0 ? `${urgentCount} Segera` : "Aman"}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </div>
+
+                        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                          {visibleDueDates.length > 0 ? (
+                            visibleDueDates.map((d) => (
+                              <div
+                                key={d.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  gap: 10,
+                                  padding: "10px 12px",
+                                  borderRadius: 10,
+                                  background: d.daysUntilDue <= 3 ? "#fffbeb" : "#f8fafc",
+                                  border: `1px solid ${d.daysUntilDue <= 3 ? "#fde68a" : "#f1f5f9"}`,
+                                  fontSize: 12,
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                                  <span
+                                    style={{
+                                      width: 8,
+                                      height: 8,
+                                      borderRadius: "50%",
+                                      flexShrink: 0,
+                                      background:
+                                        d.daysUntilDue <= 1
+                                          ? "#ef4444"
+                                          : d.daysUntilDue <= 3
+                                            ? "#f59e0b"
+                                            : "#0d9488",
+                                    }}
+                                  />
+                                  <div style={{ minWidth: 0 }}>
+                                    <div
+                                      style={{
+                                        fontWeight: 700,
+                                        color: "#0f172a",
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                      }}
+                                    >
+                                      Kamar {d.roomCode} · {d.tenantName}
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: 11,
+                                        color: d.daysUntilDue <= 1 ? "#dc2626" : d.daysUntilDue <= 3 ? "#d97706" : "#64748b",
+                                        fontWeight: d.daysUntilDue <= 3 ? 600 : 500,
+                                      }}
+                                    >
+                                      {d.dueText}
+                                    </div>
+                                  </div>
+                                </div>
+                                <span
+                                  style={{
+                                    fontWeight: 800,
+                                    color: "#334155",
+                                    fontVariantNumeric: "tabular-nums",
+                                    whiteSpace: "nowrap",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {fmtRpCompact(d.monthlyPrice)}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <div
+                              style={{
+                                padding: "20px 12px",
+                                textAlign: "center",
+                                background: "#f8fafc",
+                                borderRadius: 10,
+                                color: "#94a3b8",
+                                fontSize: 12,
+                              }}
+                            >
+                              Tidak ada jadwal jatuh tempo sewa dalam waktu dekat.
+                            </div>
+                          )}
+
+                          {hiddenCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAllDueDates((v) => !v)}
+                              style={{
+                                marginTop: 4,
+                                width: "100%",
+                                padding: "8px 10px",
+                                borderRadius: 10,
+                                border: "1px dashed #cbd5e1",
+                                background: "#ffffff",
+                                color: "#475569",
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                            >
+                              {showAllDueDates
+                                ? "Tampilkan Lebih Ringkas"
+                                : `+${hiddenCount} jadwal lainnya (Lihat)`}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -2604,176 +2903,305 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* 3. ULASAN TAB */}
-        {activeTab === "reviews" && (
-          <div>
-            <div className="dash-head">
-              <div>
-                <h1>{tabTitles.reviews}</h1>
-                <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
-                  Ulasan yang dikirim penghuni via QR code kamar harus
-                  diverifikasi sebelum tampil di website publik.
-                </p>
-              </div>
-            </div>
+        {/* 3. ULASAN TAB (Clean UX: Stats, Filter Pills, Avatar, Clear Status) */}
+        {activeTab === "reviews" && (() => {
+          const pendingCount = reviews.filter((r) => r.publication_status === "pending").length;
+          const publishedCount = reviews.filter((r) => r.publication_status === "published").length;
+          const avgRating =
+            reviews.length > 0
+              ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+              : "0.0";
+          const filteredReviews = reviews.filter((r) => {
+            if (reviewFilter === "pending") return r.publication_status === "pending";
+            if (reviewFilter === "published") return r.publication_status === "published";
+            return true;
+          });
 
-            <div className="dash-table-card">
-              <div style={{ padding: "16px 18px" }}>
-                {reviews.map((r) => (
-                  <div
-                    key={r.id}
-                    style={{
-                      padding: 16,
-                      border: "1px solid var(--line)",
-                      borderRadius: 14,
-                      marginBottom: 14,
-                      background: "#fff",
-                    }}
-                  >
-                    <div
+          return (
+            <div>
+              <div className="dash-head">
+                <div>
+                  <h1>{tabTitles.reviews}</h1>
+                  <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
+                    Verifikasi ulasan penghuni sebelum tampil di halaman publik kost Anda.
+                  </p>
+                </div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 14px",
+                    borderRadius: 12,
+                    background: "#fffbeb",
+                    border: "1px solid #fde68a",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: "#b45309",
+                  }}
+                >
+                  <span>★ {avgRating}</span>
+                  <span style={{ fontWeight: 500, color: "#92400e", fontSize: 12 }}>
+                    ({reviews.length} ulasan)
+                  </span>
+                </div>
+              </div>
+
+              {/* Filter Pills */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginBottom: 16,
+                }}
+              >
+                {[
+                  { key: "all" as const, label: `Semua (${reviews.length})` },
+                  { key: "pending" as const, label: `Menunggu Verifikasi (${pendingCount})` },
+                  { key: "published" as const, label: `Terpublikasi (${publishedCount})` },
+                ].map((tab) => {
+                  const active = reviewFilter === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setReviewFilter(tab.key)}
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        flexWrap: "wrap",
-                        gap: 8,
+                        padding: "7px 14px",
+                        borderRadius: 999,
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        border: active ? "1px solid #0f766e" : "1px solid #e2e8f0",
+                        background: active ? "#0f766e" : "#ffffff",
+                        color: active ? "#ffffff" : "#475569",
+                        cursor: "pointer",
                       }}
                     >
-                      <div>
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Review Cards List */}
+              {filteredReviews.length === 0 ? (
+                <div
+                  className="dash-panel-card"
+                  style={{ textAlign: "center", padding: "40px 20px", color: "#64748b" }}
+                >
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>
+                    Belum ada ulasan di kategori ini
+                  </div>
+                  <p style={{ fontSize: 12.5, marginTop: 6 }}>
+                    Ulasan dari penghuni yang memindai QR kamar akan muncul di sini.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {filteredReviews.map((r) => {
+                    const initials = (r.reviewer_name || "P")
+                      .split(" ")
+                      .map((p) => p[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase();
+                    const isPending = r.publication_status === "pending";
+                    const isPublished = r.publication_status === "published";
+
+                    return (
+                      <div
+                        key={r.id}
+                        className="dash-panel-card"
+                        style={{
+                          marginBottom: 0,
+                          padding: 20,
+                          borderColor: isPending ? "#fde68a" : "#e2e8f0",
+                        }}
+                      >
                         <div
                           style={{
-                            fontSize: 14,
-                            fontWeight: 800,
-                            color: "var(--teal-950)",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            flexWrap: "wrap",
+                            gap: 12,
                           }}
                         >
-                          {r.reviewer_name}{" "}
-                          <span
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: "50%",
+                                background: isPending ? "#fef3c7" : "#f0fdfa",
+                                color: isPending ? "#b45309" : "#0f766e",
+                                fontWeight: 800,
+                                fontSize: 13,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {initials}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 14.5, fontWeight: 800, color: "#0f172a" }}>
+                                {r.reviewer_name}
+                              </div>
+                              <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                                Kamar {r.room_number} · {r.kost_name}
+                                {r.stay_period ? ` · ${r.stay_period}` : ""} · {fmtDateId(r.created_at)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div
                             style={{
-                              fontSize: 12,
-                              color: "var(--mut)",
-                              fontWeight: 500,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              padding: "4px 10px",
+                              borderRadius: 999,
+                              background: "#fffbeb",
+                              border: "1px solid #fde68a",
+                              fontSize: 12.5,
+                              fontWeight: 800,
+                              color: "#b45309",
                             }}
                           >
-                            · {r.room_number} ({r.kost_name})
-                          </span>
+                            <span>★</span>
+                            <span>{r.rating}.0</span>
+                          </div>
                         </div>
+
+                        <p
+                          style={{
+                            fontSize: 13.5,
+                            color: "#334155",
+                            marginTop: 14,
+                            marginBottom: 0,
+                            lineHeight: 1.6,
+                            padding: "12px 14px",
+                            background: "#f8fafc",
+                            borderRadius: 10,
+                          }}
+                        >
+                          “{r.comment}”
+                        </p>
+
+                        {r.owner_reply && (
+                          <div
+                            style={{
+                              marginTop: 12,
+                              padding: "10px 14px",
+                              background: "#f0fdfa",
+                              borderLeft: "3px solid #0d9488",
+                              borderRadius: "0 10px 10px 0",
+                              fontSize: 12.5,
+                              color: "#134e4a",
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            <b style={{ display: "block", marginBottom: 2, fontSize: 11.5, color: "#0f766e" }}>
+                              Balasan Anda
+                            </b>
+                            {r.owner_reply}
+                          </div>
+                        )}
+
                         <div
                           style={{
-                            fontSize: 11,
-                            color: "var(--faint)",
-                            marginTop: 2,
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginTop: 16,
+                            paddingTop: 14,
+                            borderTop: "1px solid #f1f5f9",
+                            flexWrap: "wrap",
+                            gap: 10,
                           }}
                         >
-                          Masa menginap: {r.stay_period} · Dikirim {r.created_at}
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              padding: "4px 10px",
+                              borderRadius: 999,
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              background: isPending
+                                ? "#fef3c7"
+                                : isPublished
+                                  ? "#ecfdf5"
+                                  : "#f1f5f9",
+                              color: isPending
+                                ? "#b45309"
+                                : isPublished
+                                  ? "#047857"
+                                  : "#64748b",
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: "50%",
+                                background: isPending
+                                  ? "#f59e0b"
+                                  : isPublished
+                                    ? "#10b981"
+                                    : "#94a3b8",
+                              }}
+                            />
+                            {isPending
+                              ? "Menunggu Verifikasi"
+                              : isPublished
+                                ? "Terpublikasi"
+                                : "Disembunyikan"}
+                          </span>
+
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {isPending && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="btn btn-line btn-sm"
+                                  onClick={() => handleRejectReview(r.id)}
+                                >
+                                  Tolak
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-emerald btn-sm"
+                                  onClick={() => setShowVerifyModal(r)}
+                                >
+                                  Verifikasi & Terbitkan
+                                </button>
+                              </>
+                            )}
+                            {isPublished && !r.owner_reply && (
+                              <button
+                                type="button"
+                                className="btn btn-line btn-sm"
+                                onClick={() => setShowReplyModal(r.id)}
+                              >
+                                Balas Ulasan
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: "var(--gold-dark)",
-                        }}
-                      >
-                        ★ {r.rating}.0
-                      </div>
-                    </div>
-
-                    <p
-                      style={{
-                        fontSize: 13,
-                        color: "var(--ink2)",
-                        marginTop: 10,
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      "{r.comment}"
-                    </p>
-
-                    {r.owner_reply && (
-                      <div
-                        style={{
-                          marginTop: 10,
-                          padding: "10px 14px",
-                          background: "var(--emerald-soft2)",
-                          borderRadius: 10,
-                          fontSize: 12,
-                          color: "var(--teal-950)",
-                        }}
-                      >
-                        <b>Balasan Anda:</b> {r.owner_reply}
-                      </div>
-                    )}
-
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginTop: 14,
-                        paddingTop: 12,
-                        borderTop: "1px solid var(--line)",
-                        flexWrap: "wrap",
-                        gap: 10,
-                      }}
-                    >
-                      <div>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color:
-                              r.verification_status === "verified"
-                                ? "var(--wa-dark)"
-                                : "var(--amber-dark)",
-                          }}
-                        >
-                          Status:{" "}
-                          {r.verification_status === "verified"
-                            ? "Terverifikasi"
-                            : "Menunggu Verifikasi"}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        {r.publication_status === "pending" && (
-                          <>
-                            <button
-                              className="btn btn-line btn-sm"
-                              onClick={() => handleRejectReview(r.id)}
-                            >
-                              Tolak Ulasan
-                            </button>
-                            <button
-                              className="btn btn-emerald btn-sm"
-                              onClick={() => setShowVerifyModal(r)}
-                            >
-                              Verifikasi & Terbitkan
-                            </button>
-                          </>
-                        )}
-                        {r.publication_status === "published" &&
-                          !r.owner_reply && (
-                            <button
-                              className="btn btn-line btn-sm"
-                              onClick={() => setShowReplyModal(r.id)}
-                            >
-                              Balas Ulasan
-                            </button>
-                          )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 4. KEUANGAN TAB */}
         {activeTab === "finance" && (
@@ -2804,30 +3232,54 @@ export default function OwnerDashboard() {
 
             {/* Financial summary KPIs */}
             <div className="dash-grid-kpi">
-              <div className="dash-kpi-card">
+              <div className="dash-kpi-card" title={fmtRp(totalIncome)}>
                 <div className="kpi-label">Total Pemasukan</div>
                 <div
                   className="kpi-num"
-                  style={{ color: "var(--wa-dark)", fontSize: 20 }}
+                  style={{
+                    color: "var(--wa-dark)",
+                    fontSize: "clamp(18px, 1.9vw, 22px)",
+                    whiteSpace: "nowrap",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
                 >
+                  {fmtRpCompact(totalIncome)}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--faint)", marginTop: 4 }}>
                   {fmtRp(totalIncome)}
                 </div>
               </div>
-              <div className="dash-kpi-card">
+              <div className="dash-kpi-card" title={fmtRp(totalExpense)}>
                 <div className="kpi-label">Total Pengeluaran</div>
                 <div
                   className="kpi-num"
-                  style={{ color: "var(--rose-dark)", fontSize: 20 }}
+                  style={{
+                    color: "var(--rose-dark)",
+                    fontSize: "clamp(18px, 1.9vw, 22px)",
+                    whiteSpace: "nowrap",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
                 >
+                  {fmtRpCompact(totalExpense)}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--faint)", marginTop: 4 }}>
                   {fmtRp(totalExpense)}
                 </div>
               </div>
-              <div className="dash-kpi-card">
+              <div className="dash-kpi-card" title={fmtRp(netBalance)}>
                 <div className="kpi-label">Saldo Bersih</div>
                 <div
                   className="kpi-num"
-                  style={{ color: "var(--teal)", fontSize: 20 }}
+                  style={{
+                    color: "var(--teal)",
+                    fontSize: "clamp(18px, 1.9vw, 22px)",
+                    whiteSpace: "nowrap",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
                 >
+                  {fmtRpCompact(netBalance)}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--faint)", marginTop: 4 }}>
                   {fmtRp(netBalance)}
                 </div>
               </div>
@@ -3109,65 +3561,195 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {/* 6. NOTIFIKASI TAB */}
-        {activeTab === "notif" && (
-          <div>
-            <div className="dash-head">
-              <div>
-                <h1>{tabTitles.notif}</h1>
-                <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
-                  Pemberitahuan terkait status listing, ulasan baru, dan
-                  pembayaran.
-                </p>
-              </div>
-              <button className="btn btn-ghost btn-sm" onClick={markAllRead}>
-                Tandai Semua Dibaca
-              </button>
-            </div>
+        {/* 6. NOTIFIKASI TAB (Clean UX: Filter Pills, Category Icons, Unread Dot) */}
+        {activeTab === "notif" && (() => {
+          const unreadCount = notifications.filter((n) => !n.is_read).length;
+          const filteredNotifs = notifications.filter((n) =>
+            notifFilter === "unread" ? !n.is_read : true,
+          );
 
-            <div className="dash-table-card">
-              <div style={{ padding: 16 }}>
-                {notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    style={{
-                      padding: "14px 16px",
-                      borderRadius: 12,
-                      marginBottom: 8,
-                      background: n.is_read ? "#fff" : "var(--emerald-soft2)",
-                      border: "1px solid var(--line)",
-                    }}
+          const getNotifVisual = (type: string) => {
+            if (type === "payment" || type === "subscription") {
+              return { bg: "#ecfdf5", color: "#059669", label: "Keuangan" };
+            }
+            if (type === "review") {
+              return { bg: "#fffbeb", color: "#d97706", label: "Ulasan" };
+            }
+            if (type === "reminder") {
+              return { bg: "#eef2ff", color: "#4f46e5", label: "Pengingat" };
+            }
+            return { bg: "#f1f5f9", color: "#475569", label: "Sistem" };
+          };
+
+          return (
+            <div>
+              <div className="dash-head">
+                <div>
+                  <h1>{tabTitles.notif}</h1>
+                  <p style={{ color: "var(--mut)", fontSize: 13, marginTop: 4 }}>
+                    Pemberitahuan penting terkait sewa, ulasan penghuni, dan status kost Anda.
+                  </p>
+                </div>
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-line btn-sm"
+                    onClick={markAllRead}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        flexWrap: "wrap",
-                        gap: 6,
-                      }}
-                    >
-                      <b style={{ fontSize: 13, color: "var(--teal-950)" }}>
-                        {n.title}
-                      </b>
-                      <span style={{ fontSize: 11, color: "var(--faint)" }}>
-                        {n.created_at}
-                      </span>
-                    </div>
-                    <p
-                      style={{
-                        fontSize: 12.5,
-                        color: "var(--ink2)",
-                        marginTop: 4,
-                      }}
-                    >
-                      {n.message}
-                    </p>
-                  </div>
-                ))}
+                    Tandai Semua Dibaca ({unreadCount})
+                  </button>
+                )}
               </div>
+
+              {/* Filter Pills */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                {[
+                  { key: "all" as const, label: `Semua (${notifications.length})` },
+                  { key: "unread" as const, label: `Belum Dibaca (${unreadCount})` },
+                ].map((tab) => {
+                  const active = notifFilter === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setNotifFilter(tab.key)}
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: 999,
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        border: active ? "1px solid #0f766e" : "1px solid #e2e8f0",
+                        background: active ? "#0f766e" : "#ffffff",
+                        color: active ? "#ffffff" : "#475569",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {filteredNotifs.length === 0 ? (
+                <div
+                  className="dash-panel-card"
+                  style={{ textAlign: "center", padding: "40px 20px", color: "#64748b" }}
+                >
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>
+                    {notifFilter === "unread"
+                      ? "Semua notifikasi sudah dibaca"
+                      : "Belum ada notifikasi"}
+                  </div>
+                  <p style={{ fontSize: 12.5, marginTop: 6 }}>
+                    Kami akan memberi tahu Anda bila ada pembayaran masuk, ulasan baru, atau jatuh tempo sewa.
+                  </p>
+                </div>
+              ) : (
+                <div className="dash-panel-card" style={{ padding: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {filteredNotifs.map((n) => {
+                      const vis = getNotifVisual(n.type);
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            if (!n.is_read) markOneRead(n.id);
+                          }}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 14,
+                            padding: "14px 16px",
+                            borderRadius: 12,
+                            background: n.is_read ? "#ffffff" : "#f0fdfa",
+                            border: `1px solid ${n.is_read ? "#f1f5f9" : "#ccfbf1"}`,
+                            cursor: n.is_read ? "default" : "pointer",
+                            transition: "background-color 0.15s ease",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 10,
+                              background: vis.bg,
+                              color: vis.color,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              fontWeight: 800,
+                              fontSize: 15,
+                            }}
+                          >
+                            {n.type === "payment" || n.type === "subscription"
+                              ? "Rp"
+                              : n.type === "review"
+                                ? "★"
+                                : "●"}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                                gap: 8,
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                {!n.is_read && (
+                                  <span
+                                    style={{
+                                      width: 8,
+                                      height: 8,
+                                      borderRadius: "50%",
+                                      background: "#0d9488",
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                )}
+                                <b style={{ fontSize: 13.5, color: "#0f172a" }}>{n.title}</b>
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 700,
+                                    padding: "2px 7px",
+                                    borderRadius: 6,
+                                    background: vis.bg,
+                                    color: vis.color,
+                                  }}
+                                >
+                                  {vis.label}
+                                </span>
+                              </div>
+                              <span style={{ fontSize: 11.5, color: "#94a3b8", whiteSpace: "nowrap" }}>
+                                {fmtDateId(n.created_at)}
+                              </span>
+                            </div>
+                            <p
+                              style={{
+                                fontSize: 12.5,
+                                color: "#475569",
+                                marginTop: 6,
+                                marginBottom: 0,
+                                lineHeight: 1.55,
+                              }}
+                            >
+                              {n.message}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 7. PROFIL TAB (Pre-mounted in DOM with display toggle for instantaneous load with zero freeze) */}
         <div style={{ display: activeTab === "profile" ? "block" : "none" }}>
