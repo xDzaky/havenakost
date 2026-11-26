@@ -1490,7 +1490,7 @@ export default function OwnerDashboard() {
               <div className="dash-middle-grid">
                 {/* LEFT COLUMN (8 COLS) */}
                 <div>
-                  {/* WIDGET 1: Tren Okupansi Kamar & Area Chart */}
+                  {/* WIDGET 1: Grafik Keterisian Kamar Kost */}
                   <div className="dash-panel-card">
                     <div className="dash-panel-header">
                       <div>
@@ -1505,11 +1505,11 @@ export default function OwnerDashboard() {
                               margin: 0,
                             }}
                           >
-                            Tren Okupansi Kamar
+                            Grafik Keterisian Kamar Kost
                           </h2>
                         </div>
                         <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0 15px" }}>
-                          Ringkasan dan riwayat tingkat hunian kamar kost bulanan
+                          Pantau persentase kamar terisi serta riwayat keterisian hunian kost Anda
                         </p>
                       </div>
 
@@ -1543,7 +1543,7 @@ export default function OwnerDashboard() {
                     <div className="dash-metric-strip">
                       {/* Metric 1: Okupansi Saat Ini */}
                       <div className="dash-metric-item">
-                        <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Okupansi Saat Ini</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Kamar Terisi Saat Ini</span>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
                           <span style={{ fontSize: 24, fontWeight: 800, color: "#0f172a" }}>{kpi.occupancyRate}%</span>
                           <span style={{ fontSize: 11.5, color: "#64748b", fontWeight: 500 }}>
@@ -1571,7 +1571,7 @@ export default function OwnerDashboard() {
 
                       {/* Metric 2: Sewa Tertagih */}
                       <div className="dash-metric-item">
-                        <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Sewa Tertagih</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "#64748b" }}>Penerimaan Sewa</span>
                         <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 6 }}>
                           <span style={{ fontSize: 24, fontWeight: 800, color: "#0f766e" }}>
                             {fmtRp(totalIncome)}
@@ -1620,10 +1620,10 @@ export default function OwnerDashboard() {
                             letterSpacing: "0.5px",
                           }}
                         >
-                          1. Tren Okupansi Kamar (%)
+                          1. Persentase Kamar Terisi (%)
                         </span>
                       </div>
-                      <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Persentase kamar terhuni</span>
+                      <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>Persentase kamar yang aktif dihuni</span>
                     </div>
 
                     {/* Pure SVG Area Curve Chart (Responsive, Zero Lag) */}

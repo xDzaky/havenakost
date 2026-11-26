@@ -52,9 +52,9 @@ export const GET = ownerRoute(async (_request, _context, session) => {
       latitude: kostListings.latitude,
       longitude: kostListings.longitude,
       createdAt: kostListings.createdAt,
-      totalRooms: sql<number>`(SELECT COUNT(*)::int FROM kost_rooms kr WHERE kr.kost_id = ${kostListings.id})`,
-      availableRooms: sql<number>`(SELECT COUNT(*)::int FROM kost_rooms kr WHERE kr.kost_id = ${kostListings.id} AND kr.room_status = 'available')`,
-      coverPhotoUrl: sql<string | null>`(SELECT kp.image_url FROM kost_photos kp WHERE kp.kost_id = ${kostListings.id} ORDER BY kp.is_cover DESC, kp.created_at ASC LIMIT 1)`,
+      totalRooms: sql<number>`(SELECT COUNT(*)::int FROM kost_rooms kr WHERE kr.kost_id = kost_listings.id)`,
+      availableRooms: sql<number>`(SELECT COUNT(*)::int FROM kost_rooms kr WHERE kr.kost_id = kost_listings.id AND kr.room_status = 'available')`,
+      coverPhotoUrl: sql<string | null>`(SELECT kp.image_url FROM kost_photos kp WHERE kp.kost_id = kost_listings.id ORDER BY kp.is_cover DESC, kp.created_at ASC LIMIT 1)`,
     })
     .from(kostListings)
     .where(and(eq(kostListings.ownerId, ownerId), isNull(kostListings.deletedAt)))
