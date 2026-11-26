@@ -1580,8 +1580,38 @@ footer::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;back
 
 @media (max-width: 767px) {
   .dash-vibrant-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .dash-vibrant-card {
+    padding: 13px 12px;
+    border-radius: 14px;
+  }
+  .dash-vibrant-inner {
+    min-height: 82px;
+  }
+  .dash-vibrant-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+  .dash-vibrant-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  .dash-vibrant-num {
+    font-size: 20px;
+    letter-spacing: -0.3px;
+  }
+  .dash-vibrant-label {
+    font-size: 9px;
+    letter-spacing: 0.3px;
+  }
+  .dash-vibrant-footer {
+    padding-top: 8px;
+    margin-top: 8px;
+    font-size: 10.5px;
   }
   .dash-metric-strip {
     grid-template-columns: 1fr;
@@ -1590,6 +1620,21 @@ footer::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;back
   .dash-panel-card {
     padding: 16px;
     border-radius: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .dash-vibrant-grid {
+    gap: 8px;
+  }
+  .dash-vibrant-card {
+    padding: 11px 10px;
+  }
+  .dash-vibrant-num {
+    font-size: 18px;
+  }
+  .dash-vibrant-footer {
+    font-size: 10px;
   }
 }
 

@@ -1387,7 +1387,7 @@ export default function OwnerDashboard() {
                 </div>
               </div>
 
-              {/* 4 VIBRANT GRADIENT STAT CARDS (Data Real Database) */}
+              {/* 4 VIBRANT GRADIENT STAT CARDS (2x2 di Mobile, 4 Kolom di Desktop) */}
               <div className="dash-vibrant-grid">
                 {/* Card 1: Listing Aktif (Purple/Violet Theme) */}
                 <div className="dash-vibrant-card stat-pattern-purple">
@@ -1405,7 +1405,7 @@ export default function OwnerDashboard() {
                           />
                         </svg>
                       </div>
-                      <div>
+                      <div style={{ minWidth: 0, textAlign: "right" }}>
                         <div className="dash-vibrant-label" style={{ color: "#e9d5ff" }}>
                           LISTING AKTIF
                         </div>
@@ -1413,9 +1413,9 @@ export default function OwnerDashboard() {
                       </div>
                     </div>
                     <div className="dash-vibrant-footer" style={{ color: "#f3e8ff" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
-                        <span>dari total {kpi.totalListings} properti kost</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>total {kpi.totalListings} kost</span>
                       </div>
                     </div>
                   </div>
@@ -1437,13 +1437,13 @@ export default function OwnerDashboard() {
                           />
                         </svg>
                       </div>
-                      <div>
+                      <div style={{ minWidth: 0, textAlign: "right" }}>
                         <div className="dash-vibrant-label" style={{ color: "#fed7aa" }}>
                           KAMAR TERSEDIA
                         </div>
                         <div className="dash-vibrant-num">
                           {kpi.availableRooms}{" "}
-                          <span style={{ fontSize: 16, fontWeight: 600, opacity: 0.82 }}>
+                          <span style={{ fontSize: "0.62em", fontWeight: 600, opacity: 0.82 }}>
                             / {kpi.totalRooms}
                           </span>
                         </div>
@@ -1454,13 +1454,14 @@ export default function OwnerDashboard() {
                       <span
                         style={{
                           background: "rgba(255, 255, 255, 0.22)",
-                          padding: "2px 8px",
+                          padding: "2px 6px",
                           borderRadius: 6,
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: 700,
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        {kpi.occupiedRooms} Terisi
+                        {kpi.occupiedRooms} Isi
                       </span>
                     </div>
                   </div>
@@ -1482,7 +1483,7 @@ export default function OwnerDashboard() {
                           />
                         </svg>
                       </div>
-                      <div>
+                      <div style={{ minWidth: 0, textAlign: "right" }}>
                         <div className="dash-vibrant-label" style={{ color: "#99f6e4" }}>
                           ULASAN MASUK
                         </div>
@@ -1490,9 +1491,9 @@ export default function OwnerDashboard() {
                       </div>
                     </div>
                     <div className="dash-vibrant-footer" style={{ color: "#ccfbf1" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fde047", display: "inline-block" }} />
-                        <span>{kpi.pendingReviewsCount} menunggu verifikasi</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fde047", flexShrink: 0 }} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{kpi.pendingReviewsCount} menunggu</span>
                       </div>
                     </div>
                   </div>
@@ -1514,7 +1515,7 @@ export default function OwnerDashboard() {
                           />
                         </svg>
                       </div>
-                      <div style={{ minWidth: 0 }}>
+                      <div style={{ minWidth: 0, textAlign: "right" }}>
                         <div className="dash-vibrant-label" style={{ color: "#bae6fd" }}>
                           SALDO BULAN INI
                         </div>
@@ -1522,7 +1523,7 @@ export default function OwnerDashboard() {
                           className="dash-vibrant-num"
                           title={fmtRp(netBalance)}
                           style={{
-                            fontSize: "clamp(18px, 1.8vw, 22px)",
+                            fontSize: "clamp(15px, 3.6vw, 22px)",
                             whiteSpace: "nowrap",
                             fontVariantNumeric: "tabular-nums",
                           }}
@@ -1532,11 +1533,8 @@ export default function OwnerDashboard() {
                       </div>
                     </div>
                     <div className="dash-vibrant-footer" style={{ color: "#e0f2fe" }}>
-                      <span title={fmtRp(totalIncome)} style={{ whiteSpace: "nowrap" }}>
-                        pemasukan:{" "}
-                        <strong style={{ color: "#ffffff", fontVariantNumeric: "tabular-nums" }}>
-                          {fmtRpCompact(totalIncome)}
-                        </strong>
+                      <span title={fmtRp(totalIncome)} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        masuk: <strong style={{ color: "#ffffff", fontVariantNumeric: "tabular-nums" }}>{fmtRpCompact(totalIncome)}</strong>
                       </span>
                     </div>
                   </div>
